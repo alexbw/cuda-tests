@@ -1,4 +1,4 @@
 cuda-tests
 ==========
 
-Gotta learn some CUDA gits
+Gotta learn some CUDA stuff
