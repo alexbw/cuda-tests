@@ -22,7 +22,6 @@ __device__ matrix4f calcLocalRotation(float rotx, float roty, float rotz,
     roty = deg2rad(roty);
     rotz = deg2rad(rotz);
 
-
     float cx = cos(rotx);
     float sx = sin(rotx);
     float cy = cos(roty);
@@ -76,24 +75,23 @@ __global__ void MatrixMultiplyKernel(int numMatrices, float *out)
     const uint aBegin = bw*bx;
     const uint idx = (aBegin+tx)*16; // 4x4 matrix being stored
 
-    matrix4f* J = (matrix4f *)malloc(sizeof(matrix4f)*);
-    for (int i=0;i<numMatrices;++i) {{
-        J[0] = matrix4f();
-    }}
+    matrix4f* J = new matrix4f[10];
 
     // // Kick off the joint chain
-    // J[0] = calcLocalRotation(0.,0.,0.,1.,1.,1.);
+    J[0] = calcLocalRotation(0.,0.,0.,1.,1.,1.);
 
-    // for (int i=1;i<numMatrices;++i) {{
-    //     // Make a rotation matrix
-    //     J[i] = calcLocalRotation(threadIdx.x,0.,0.,1.,1.,1.);
-    //     // Multiply it into the last matrix
-    //     J[i] = J[i]*J[i-1];
-    // }}
+    for (int i=1;i<10;++i) {{
+        // Make a rotation matrix
+        J[i] = calcLocalRotation(threadIdx.x,0.,0.,1.,1.,1.);
+        // Multiply it into the last matrix
+        J[i] = J[i]*J[i-1];
+    }}
 
-    // // Store it all out
-    // for (int i=0;i<16;++i) {{
-    //     out[idx+i] = J[0]._array[i];
-    // }}
+    // Store it all out
+    for (int i=0;i<16;++i) {{
+        out[idx+i] = J[0]._array[i];
+    }}
+
+    delete J;
 
 }}
