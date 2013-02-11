@@ -22,6 +22,7 @@ __device__ matrix4f calcLocalRotation(float rotx, float roty, float rotz,
     roty = deg2rad(roty);
     rotz = deg2rad(rotz);
 
+
     float cx = cos(rotx);
     float sx = sin(rotx);
     float cy = cos(roty);
