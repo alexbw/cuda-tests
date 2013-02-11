@@ -17,6 +17,7 @@ __device__ float rad2deg(float rad) {{
 __device__ matrix4f calcLocalRotation(float rotx, float roty, float rotz,
                                       float transx, float transy, float transz) {{
 
+
     rotx = deg2rad(rotx);
     roty = deg2rad(roty);
     rotz = deg2rad(rotz);
