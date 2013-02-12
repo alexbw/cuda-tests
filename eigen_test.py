@@ -31,11 +31,17 @@ mod = compiler.SourceModule(kernel_code, options=\
 # get the kernel function from the compiled module
 eigen = mod.get_function("EigenKernel")
 nvmat = mod.get_function("nvMatrixKernel")
-# idtest = mod.get_function("EigenIdentityTest")
+rotation = mod.get_function("EigenTransformTest")
+idtest = mod.get_function("EigenIdentityTest")
+cholesky = mod.get_function("EigenCholeskyTest")
+
+# rotation(grid=(1,1,1),block=(1,1,1))
+cholesky(grid=(1,1,1),block=(1,1,1))
+driver.Context.synchronize()
+eigen(grid = (100,1,1), block = (32,1,1))
 
 # idtest(grid=(1,1,1),block=(1,1,1))
 
-driver.Context.synchronize()
 # Call the kernel on the card
 
 nvmat_start = time.time()
@@ -55,5 +61,8 @@ eigen(
 # Make sure the computation is completed
 driver.Context.synchronize()
 eigen_time = time.time() - eigen_start
+
+
+
 
 print "Eigen time: {eig}. nvMat time: {nvm}".format(eig=eigen_time, nvm=nvmat_time)

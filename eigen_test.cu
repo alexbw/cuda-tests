@@ -1,14 +1,40 @@
 #define EIGEN_NO_MALLOC
 #define NDEBUG // VERY VERY IMPORTANT FOR PERFORMANCE!!
+#include <iostream>
 #include <stdio.h>
 #include <Eigen/Dense>
 #include <Eigen/LU>
 #include <nvMatrix.h>
+#include <Eigen/Geometry>
+#include <Eigen/Cholesky>
 
 typedef matrix4<float> matrix4f;
 #define NITER 10000
 using namespace Eigen;
 using namespace std;
+
+extern "C"
+__global__ void EigenCholeskyTest()
+{{
+
+    Affine3f t(Affine3f::Identity());
+    t *= Translation3f(0.0, 0.0, 0.0);
+    t *= AngleAxisf(30.0, Vector3f::UnitX());
+    t *= AngleAxisf(M_PI / 180.0f * 30.0f, Vector3f::UnitY());
+    t *= AngleAxisf(30.0, Vector3f::UnitZ());
+    t *= Scaling(3.0f, 3.0f, 3.0f);
+    Matrix4f D = t.matrix();
+
+    // Matrix4f D = Matrix4f::Random();
+    printf("HEY YOU...\n");
+    Matrix4f A = D.transpose() * D;
+    Vector4f b = D.transpose() * Vector4f(0.5,0.3,0.1,0.5);
+    Vector4f x;
+    printf("Well, we get this far...\n");
+    LLT<Matrix4f> lltOfA(A);
+    lltOfA.solveInPlace(b);
+    printf("We're running...\n");
+}}
 
 extern "C"
 __global__ void IncludeTestKernel()
@@ -23,6 +49,12 @@ __global__ void IncludeTestKernel()
     // c = a*b;
 
     // cout << "YEAHEHAHHEA" << '\n';
+}}
+
+extern "C"
+__global__ void EigenTransformationKernel()
+{{
+
 }}
 
 extern "C"
@@ -63,7 +95,20 @@ __global__ void EigenIdentityTest()
     printf("What: %f\n", A(0,0));
 }}
 
+extern "C"
 __global__ void EigenTransformTest()
 {{
-    Matrix4f A = Matrix4f::Identity();
+    Affine3f t(Affine3f::Identity());
+    t *= Translation3f(0.0, 0.0, 0.0);
+    t *= AngleAxisf(30.0, Vector3f::UnitX());
+    t *= AngleAxisf(M_PI / 180.0f * 30.0f, Vector3f::UnitY());
+    t *= AngleAxisf(30.0, Vector3f::UnitZ());
+    t *= Scaling(3.0f, 3.0f, 3.0f);
+    // for (int i=0; i < 4; ++i) {{
+    //     for (int j=0; j < 4; ++j) {{
+    //         printf("%f\t", t.matrix()(i,j));
+    //     }}
+    //     printf("\n");
+    // }}
 }}
+

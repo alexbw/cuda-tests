@@ -19,6 +19,7 @@ enum { StreamPrecision = -1,
 
 namespace internal {
 template<typename Derived>
+EIGEN_DEVICE_FUNC
 std::ostream & print_matrix(std::ostream & s, const Derived& _m, const IOFormat& fmt);
 }
 
@@ -50,6 +51,7 @@ std::ostream & print_matrix(std::ostream & s, const Derived& _m, const IOFormat&
 struct IOFormat
 {
   /** Default contructor, see class IOFormat for the meaning of the parameters */
+  EIGEN_DEVICE_FUNC
   IOFormat(int _precision = StreamPrecision, int _flags = 0,
     const std::string& _coeffSeparator = " ",
     const std::string& _rowSeparator = "\n", const std::string& _rowPrefix="", const std::string& _rowSuffix="",
@@ -90,11 +92,11 @@ template<typename ExpressionType>
 class WithFormat
 {
   public:
-
+    EIGEN_DEVICE_FUNC
     WithFormat(const ExpressionType& matrix, const IOFormat& format)
       : m_matrix(matrix), m_format(format)
     {}
-
+    EIGEN_DEVICE_FUNC
     friend std::ostream & operator << (std::ostream & s, const WithFormat& wf)
     {
       return internal::print_matrix(s, wf.m_matrix.eval(), wf.m_format);
@@ -113,6 +115,7 @@ class WithFormat
   * \sa class IOFormat, class WithFormat
   */
 template<typename Derived>
+EIGEN_DEVICE_FUNC
 inline const WithFormat<Derived>
 DenseBase<Derived>::format(const IOFormat& fmt) const
 {
@@ -125,6 +128,7 @@ template<typename Scalar, bool IsInteger>
 struct significant_decimals_default_impl
 {
   typedef typename NumTraits<Scalar>::Real RealScalar;
+  EIGEN_DEVICE_FUNC
   static inline int run()
   {
     using std::ceil;
@@ -136,6 +140,7 @@ struct significant_decimals_default_impl
 template<typename Scalar>
 struct significant_decimals_default_impl<Scalar, true>
 {
+  EIGEN_DEVICE_FUNC
   static inline int run()
   {
     return 0;
@@ -150,6 +155,7 @@ struct significant_decimals_impl
 /** \internal
   * print the matrix \a _m to the output stream \a s using the output format \a fmt */
 template<typename Derived>
+EIGEN_DEVICE_FUNC
 std::ostream & print_matrix(std::ostream & s, const Derived& _m, const IOFormat& fmt)
 {
   if(_m.size() == 0)
@@ -237,6 +243,7 @@ std::ostream & print_matrix(std::ostream & s, const Derived& _m, const IOFormat&
   * \sa DenseBase::format()
   */
 template<typename Derived>
+EIGEN_DEVICE_FUNC
 std::ostream & operator <<
 (std::ostream & s,
  const DenseBase<Derived> & m)
