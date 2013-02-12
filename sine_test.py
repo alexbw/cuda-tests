@@ -49,7 +49,8 @@ for MATRIX_SIZE in [32, 64, 128]:
         end = time.time()
         gpu_time = end-start
         print "Calculating sin of {0} elements".format(GRID_SIZE*MATRIX_SIZE)
-        print "GPU time: {t} ({msize} threads/{gsize} blocks)".format(msize=MATRIX_SIZE, gsize=GRID_SIZE, t=gpu_time)
+        print "GPU time: {t} ({msize} threads/{gsize} blocks)".\
+                format(msize=MATRIX_SIZE, gsize=GRID_SIZE, t=gpu_time)
 
         cpu_start_time = time.time()
         np.sin(a_cpu)
