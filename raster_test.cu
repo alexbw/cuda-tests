@@ -8,7 +8,7 @@
 using namespace Eigen;
 using namespace std;
 
-#define NITER 10000
+#define NITER 90
 #define NVERTS 484
 #define NFACES 940
 // ==============================
@@ -136,7 +136,7 @@ __device__ inline Matrix3f rotateMatrix3D(float rotx, float roty, float rotz) {{
     return t;
 }}
 
-__device__ inline Matrix4f rotateMatrix(float rotx, float roty, float rotz) {{
+__device__ inline Matrix4f rotateMatrix2(float rotx, float roty, float rotz) {{
 
 	rotx = deg2rad(rotx);
     roty = deg2rad(roty);
@@ -169,8 +169,45 @@ __device__ inline Matrix4f rotateMatrix(float rotx, float roty, float rotz) {{
     Rz(0,1) += -sz;
     Rz(1,0) += sz;
 
-    Matrix4f t;
-    t = Rx*Ry*Rz;
+    Matrix4f t = Rx*Ry;
+    return t;
+}}
+
+__device__ inline Matrix4f rotateMatrix(float rotx, float roty, float rotz) {{
+
+    rotx = deg2rad(rotx);
+    roty = deg2rad(roty);
+    rotz = deg2rad(rotz);
+
+    float cx = cos(rotx);
+    float sx = sin(rotx);
+    float cy = cos(roty);
+    float sy = sin(roty);
+    float cz = cos(rotz);
+    float sz = sin(rotz);
+
+    Matrix4f Rx = Matrix4f::Identity(); 
+    Matrix4f Ry = Matrix4f::Identity(); 
+    Matrix4f Rz = Matrix4f::Identity();
+
+    // Right-handed convention
+    Rx(1,1) = cx;
+    Rx(1,2) = sx;
+    Rx(2,1) = -sx;
+    Rx(2,2) = cx;
+
+    Ry(0,0) = cy;
+    Ry(0,2) = -sy;
+    Ry(2,0) = sy;
+    Ry(2,2) = cy;
+
+    Rz(0,0) = cz;
+    Rz(0,1) = sz;
+    Rz(1,0) = -sz;
+    Rz(2,2) = cz;
+
+    Matrix4f t = Matrix4f::Identity();
+    t = t*Rz*Ry*Rx;
     return t;
 }}
 
@@ -269,6 +306,9 @@ __global__ void RasterKernel(GLVertex *vertices,
 							 float resolutionY )
 {{
     
+
+    // Speed challenge
+    /*
     Matrix4f mat1 = Matrix4f::Identity();
     mat1 << 0.8413,  0.0004,  0.471 ,  0.757 ,  0.85  ,  0.4208,  0.72  ,
         0.0429,  0.1005,  0.8779,  0.9141,  0.3959,  0.7905,  0.7925,
@@ -284,12 +324,17 @@ __global__ void RasterKernel(GLVertex *vertices,
     #pragma unroll
     for (int i=0; i<NITER;++i) {{
         mat1 = mat2.inverse();
-        mat3 = mat1*mat2;
+        mat2 = mat1*mat3;
     }}
+    */
 
+    Matrix3f swap;
+    swap << 1,0,0, \
+            0,0,1, \
+            0,1,0;
 
-	Matrix3f transform = scaleMatrix3D(30.0, 30.0, mat2(0,0))*rotateMatrix3D(-90,0,0);
-	Vector3f transvec(40., 40., 20.);
+	Matrix3f transform = scaleMatrix3D(30.0, 30.0, 30.0);
+	Vector3f transvec(40.5, 40.5, 0.);
 
 	// For each triangle, rasterize the crap out of it
 	// (for now, don't care about overlaps)
@@ -299,9 +344,9 @@ __global__ void RasterKernel(GLVertex *vertices,
 		unsigned short i1 = triangles[iface].v1;
 		unsigned short i2 = triangles[iface].v2;
 
-		Vector3f a(vertices[i0].x, vertices[i0].y, vertices[i0].z);
-		Vector3f b(vertices[i1].x, vertices[i1].y, vertices[i1].z);;
-		Vector3f c(vertices[i2].x, vertices[i2].y, vertices[i2].z);;
+		Vector3f a(vertices[i0].x, vertices[i0].z, vertices[i0].y);
+		Vector3f b(vertices[i1].x, vertices[i1].z, vertices[i1].y);;
+		Vector3f c(vertices[i2].x, vertices[i2].z, vertices[i2].y);;
 		
 		a = transform*a;
 		a = a+transvec;
@@ -310,25 +355,38 @@ __global__ void RasterKernel(GLVertex *vertices,
         c = transform*c;
         c = c+transvec;
 
-
 		Vector3f ll = getLowerLeftOfTriangle(a,b,c);
 		Vector3f ur = getUpperRightOfTriangle(a,b,c);
 
 		for (int i=ll(1); i < ur(1); ++i) {{
 			for (int j=ll(0); j < ur(0); ++j) {{
-				Vector3f pt(j,i,0);
+				Vector3f pt(j+0.5,i+0.5,0);
 				Vector3f baryCoord = calcBarycentricCoordinate(pt,a,b,c);
 				bool inTriangle = isBarycentricCoordinateInBounds(baryCoord);
+
 				if (inTriangle) {{
 					float interpZ = getZAtBarycentricCoordinate(baryCoord,a,b,c);
 					long int idx = i*resolutionX + j;
-					depthBuffer[idx] = interpZ;
+                    float oldval = depthBuffer[idx];
+                    if (oldval <= interpZ)
+                       atomicExch(&depthBuffer[idx], interpZ);
+					   // depthBuffer[idx] = interpZ;
 				}}
-				__threadfence();
+				
 			}}
 		}}
-
 	}}
+
+    Matrix4f tr = rotateMatrix(360, 360, 360);
+    for (int i=0; i < NVERTS; ++i) {{
+        GLVertex v = vertices[i];
+        Vector3f a(v.x,v.z,v.y);
+        a = transform*a;
+        vertices[i].x = a(0);
+        vertices[i].y = a(1);
+        vertices[i].z = a(2);
+
+    }}
 
 
 

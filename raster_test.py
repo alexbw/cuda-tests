@@ -21,7 +21,7 @@ def profileit(func):
 # Cache rules everything around me
 preferL1 = True
 if preferL1:
-    pycuda.autoinit.context.set_cache_config(func_cache.PREFER_NONE)
+    pycuda.autoinit.context.set_cache_config(func_cache.PREFER_L1)
 else:
     pycuda.autoinit.context.set_cache_config(func_cache.PREFER_SHARED)
 
@@ -53,9 +53,9 @@ vert_gpu = gpuarray.to_gpu(m.vertices[:,:3].astype('float32'))
 vert_idx_gpu = gpuarray.to_gpu(m.vertex_idx.astype('uint16'))
 driver.Context.synchronize()
 
-for num_blocks in [10]:
-    for num_threads in [128]:        
-        for num_repeats in range(1,5):
+for num_blocks in [10]: #[10]:
+    for num_threads in [128]: #[128]:        
+        for num_repeats in range(1,2):
             num_mice = num_blocks*num_threads*num_repeats
             raster_start = time.time()    
             for i in range(num_repeats):
@@ -71,6 +71,14 @@ for num_blocks in [10]:
 
 rot_verts = vert_gpu.get()
 depthBuffer = depthBuffer_gpu.get()
-# clf()
-# imshow(depthBuffer)
-# colorbar()
+close('all')
+figure()
+subplot(1,2,1)
+depthBuffer[depthBuffer == 0] = np.nan
+imshow(depthBuffer)
+colorbar()
+
+subplot(1,2,2)
+plot(rot_verts[:,0], rot_verts[:,2], 'o')
+plot(rot_verts[:,1], rot_verts[:,2], 'o')
+legend(["XY", "YZ"])
