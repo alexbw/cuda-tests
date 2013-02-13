@@ -69,7 +69,7 @@ template<typename _MatrixType, int _UpLo> class LDLT
       * The default constructor is useful in cases in which the user intends to
       * perform decompositions via LDLT::compute(const MatrixType&).
       */
-    EIGEN_DEVICE_FUNC LDLT() : m_matrix(), m_transpositions(), m_isInitialized(false) {}
+    LDLT() : m_matrix(), m_transpositions(), m_isInitialized(false) {}
 
     /** \brief Default Constructor with memory preallocation
       *
@@ -77,7 +77,7 @@ template<typename _MatrixType, int _UpLo> class LDLT
       * according to the specified problem \a size.
       * \sa LDLT()
       */
-    EIGEN_DEVICE_FUNC LDLT(Index size)
+    LDLT(Index size)
       : m_matrix(size, size),
         m_transpositions(size),
         m_temporary(size),
@@ -89,7 +89,7 @@ template<typename _MatrixType, int _UpLo> class LDLT
       * This calculates the decomposition for the input \a matrix.
       * \sa LDLT(Index size)
       */
-    EIGEN_DEVICE_FUNC LDLT(const MatrixType& matrix)
+    LDLT(const MatrixType& matrix)
       : m_matrix(matrix.rows(), matrix.cols()),
         m_transpositions(matrix.rows()),
         m_temporary(matrix.rows()),
@@ -101,20 +101,20 @@ template<typename _MatrixType, int _UpLo> class LDLT
     /** Clear any existing decomposition
      * \sa rankUpdate(w,sigma)
      */
-    EIGEN_DEVICE_FUNC void setZero()
+    void setZero()
     {
       m_isInitialized = false;
     }
 
     /** \returns a view of the upper triangular matrix U */
-    EIGEN_DEVICE_FUNC inline typename Traits::MatrixU matrixU() const
+    inline typename Traits::MatrixU matrixU() const
     {
       eigen_assert(m_isInitialized && "LDLT is not initialized.");
       return Traits::getU(m_matrix);
     }
 
     /** \returns a view of the lower triangular matrix L */
-    EIGEN_DEVICE_FUNC inline typename Traits::MatrixL matrixL() const
+    inline typename Traits::MatrixL matrixL() const
     {
       eigen_assert(m_isInitialized && "LDLT is not initialized.");
       return Traits::getL(m_matrix);
@@ -122,35 +122,35 @@ template<typename _MatrixType, int _UpLo> class LDLT
 
     /** \returns the permutation matrix P as a transposition sequence.
       */
-    EIGEN_DEVICE_FUNC inline const TranspositionType& transpositionsP() const
+    inline const TranspositionType& transpositionsP() const
     {
       eigen_assert(m_isInitialized && "LDLT is not initialized.");
       return m_transpositions;
     }
 
     /** \returns the coefficients of the diagonal matrix D */
-    EIGEN_DEVICE_FUNC inline Diagonal<const MatrixType> vectorD() const
+    inline Diagonal<const MatrixType> vectorD() const
     {
       eigen_assert(m_isInitialized && "LDLT is not initialized.");
       return m_matrix.diagonal();
     }
 
     /** \returns true if the matrix is positive (semidefinite) */
-    EIGEN_DEVICE_FUNC inline bool isPositive() const
+    inline bool isPositive() const
     {
       eigen_assert(m_isInitialized && "LDLT is not initialized.");
       return m_sign == 1;
     }
     
     #ifdef EIGEN2_SUPPORT
-    EIGEN_DEVICE_FUNC inline bool isPositiveDefinite() const
+    inline bool isPositiveDefinite() const
     {
       return isPositive();
     }
     #endif
 
     /** \returns true if the matrix is negative (semidefinite) */
-    EIGEN_DEVICE_FUNC inline bool isNegative(void) const
+    inline bool isNegative(void) const
     {
       eigen_assert(m_isInitialized && "LDLT is not initialized.");
       return m_sign == -1;
@@ -172,7 +172,6 @@ template<typename _MatrixType, int _UpLo> class LDLT
       * \sa MatrixBase::ldlt()
       */
     template<typename Rhs>
-    EIGEN_DEVICE_FUNC 
     inline const internal::solve_retval<LDLT, Rhs>
     solve(const MatrixBase<Rhs>& b) const
     {
@@ -184,7 +183,6 @@ template<typename _MatrixType, int _UpLo> class LDLT
 
     #ifdef EIGEN2_SUPPORT
     template<typename OtherDerived, typename ResultType>
-    EIGEN_DEVICE_FUNC 
     bool solve(const MatrixBase<OtherDerived>& b, ResultType *result) const
     {
       *result = this->solve(b);
@@ -193,37 +191,34 @@ template<typename _MatrixType, int _UpLo> class LDLT
     #endif
 
     template<typename Derived>
-    EIGEN_DEVICE_FUNC 
     bool solveInPlace(MatrixBase<Derived> &bAndX) const;
 
-    
-    EIGEN_DEVICE_FUNC LDLT& compute(const MatrixType& matrix);
+    LDLT& compute(const MatrixType& matrix);
 
     template <typename Derived>
-    EIGEN_DEVICE_FUNC 
     LDLT& rankUpdate(const MatrixBase<Derived>& w,RealScalar alpha=1);
 
     /** \returns the internal LDLT decomposition matrix
       *
       * TODO: document the storage layout
       */
-    EIGEN_DEVICE_FUNC inline const MatrixType& matrixLDLT() const
+    inline const MatrixType& matrixLDLT() const
     {
       eigen_assert(m_isInitialized && "LDLT is not initialized.");
       return m_matrix;
     }
 
-    EIGEN_DEVICE_FUNC MatrixType reconstructedMatrix() const;
+    MatrixType reconstructedMatrix() const;
 
-    EIGEN_DEVICE_FUNC inline Index rows() const { return m_matrix.rows(); }
-    EIGEN_DEVICE_FUNC inline Index cols() const { return m_matrix.cols(); }
+    inline Index rows() const { return m_matrix.rows(); }
+    inline Index cols() const { return m_matrix.cols(); }
 
     /** \brief Reports whether previous computation was successful.
       *
       * \returns \c Success if computation was succesful,
       *          \c NumericalIssue if the matrix.appears to be negative.
       */
-    EIGEN_DEVICE_FUNC ComputationInfo info() const
+    ComputationInfo info() const
     {
       eigen_assert(m_isInitialized && "LDLT is not initialized.");
       return Success;
@@ -251,7 +246,6 @@ template<int UpLo> struct ldlt_inplace;
 template<> struct ldlt_inplace<Lower>
 {
   template<typename MatrixType, typename TranspositionType, typename Workspace>
-  EIGEN_DEVICE_FUNC 
   static bool unblocked(MatrixType& mat, TranspositionType& transpositions, Workspace& temp, int* sign=0)
   {
     using std::abs;
@@ -353,7 +347,6 @@ template<> struct ldlt_inplace<Lower>
   // Here only rank-1 updates are implemented, to reduce the
   // requirement for intermediate storage and improve accuracy
   template<typename MatrixType, typename WDerived>
-  EIGEN_DEVICE_FUNC 
   static bool updateInPlace(MatrixType& mat, MatrixBase<WDerived>& w, typename MatrixType::RealScalar sigma=1)
   {
     using internal::isfinite;
@@ -393,7 +386,6 @@ template<> struct ldlt_inplace<Lower>
   }
 
   template<typename MatrixType, typename TranspositionType, typename Workspace, typename WType>
-  EIGEN_DEVICE_FUNC 
   static bool update(MatrixType& mat, const TranspositionType& transpositions, Workspace& tmp, const WType& w, typename MatrixType::RealScalar sigma=1)
   {
     // Apply the permutation to the input w
@@ -406,7 +398,6 @@ template<> struct ldlt_inplace<Lower>
 template<> struct ldlt_inplace<Upper>
 {
   template<typename MatrixType, typename TranspositionType, typename Workspace>
-  EIGEN_DEVICE_FUNC 
   static EIGEN_STRONG_INLINE bool unblocked(MatrixType& mat, TranspositionType& transpositions, Workspace& temp, int* sign=0)
   {
     Transpose<MatrixType> matt(mat);
@@ -414,7 +405,6 @@ template<> struct ldlt_inplace<Upper>
   }
 
   template<typename MatrixType, typename TranspositionType, typename Workspace, typename WType>
-  EIGEN_DEVICE_FUNC 
   static EIGEN_STRONG_INLINE bool update(MatrixType& mat, TranspositionType& transpositions, Workspace& tmp, WType& w, typename MatrixType::RealScalar sigma=1)
   {
     Transpose<MatrixType> matt(mat);
@@ -426,16 +416,16 @@ template<typename MatrixType> struct LDLT_Traits<MatrixType,Lower>
 {
   typedef const TriangularView<const MatrixType, UnitLower> MatrixL;
   typedef const TriangularView<const typename MatrixType::AdjointReturnType, UnitUpper> MatrixU;
-  EIGEN_DEVICE_FUNC static inline MatrixL getL(const MatrixType& m) { return m; }
-  EIGEN_DEVICE_FUNC static inline MatrixU getU(const MatrixType& m) { return m.adjoint(); }
+  static inline MatrixL getL(const MatrixType& m) { return m; }
+  static inline MatrixU getU(const MatrixType& m) { return m.adjoint(); }
 };
 
 template<typename MatrixType> struct LDLT_Traits<MatrixType,Upper>
 {
   typedef const TriangularView<const typename MatrixType::AdjointReturnType, UnitLower> MatrixL;
   typedef const TriangularView<const MatrixType, UnitUpper> MatrixU;
-  EIGEN_DEVICE_FUNC static inline MatrixL getL(const MatrixType& m) { return m.adjoint(); }
-  EIGEN_DEVICE_FUNC static inline MatrixU getU(const MatrixType& m) { return m; }
+  static inline MatrixL getL(const MatrixType& m) { return m.adjoint(); }
+  static inline MatrixU getU(const MatrixType& m) { return m; }
 };
 
 } // end namespace internal
@@ -443,7 +433,6 @@ template<typename MatrixType> struct LDLT_Traits<MatrixType,Upper>
 /** Compute / recompute the LDLT decomposition A = L D L^* = U^* D U of \a matrix
   */
 template<typename MatrixType, int _UpLo>
-EIGEN_DEVICE_FUNC 
 LDLT<MatrixType,_UpLo>& LDLT<MatrixType,_UpLo>::compute(const MatrixType& a)
 {
   eigen_assert(a.rows()==a.cols());
@@ -468,7 +457,6 @@ LDLT<MatrixType,_UpLo>& LDLT<MatrixType,_UpLo>::compute(const MatrixType& a)
   */
 template<typename MatrixType, int _UpLo>
 template<typename Derived>
-EIGEN_DEVICE_FUNC 
 LDLT<MatrixType,_UpLo>& LDLT<MatrixType,_UpLo>::rankUpdate(const MatrixBase<Derived>& w,typename NumTraits<typename MatrixType::Scalar>::Real sigma)
 {
   const Index size = w.rows();
@@ -501,7 +489,7 @@ struct solve_retval<LDLT<_MatrixType,_UpLo>, Rhs>
   typedef LDLT<_MatrixType,_UpLo> LDLTType;
   EIGEN_MAKE_SOLVE_HELPERS(LDLTType,Rhs)
 
-  template<typename Dest> EIGEN_DEVICE_FUNC void evalTo(Dest& dst) const
+  template<typename Dest> void evalTo(Dest& dst) const
   {
     eigen_assert(rhs().rows() == dec().matrixLDLT().rows());
     // dst = P b
@@ -551,7 +539,6 @@ struct solve_retval<LDLT<_MatrixType,_UpLo>, Rhs>
   */
 template<typename MatrixType,int _UpLo>
 template<typename Derived>
-EIGEN_DEVICE_FUNC 
 bool LDLT<MatrixType,_UpLo>::solveInPlace(MatrixBase<Derived> &bAndX) const
 {
   eigen_assert(m_isInitialized && "LDLT is not initialized.");
@@ -566,7 +553,6 @@ bool LDLT<MatrixType,_UpLo>::solveInPlace(MatrixBase<Derived> &bAndX) const
  * i.e., it returns the product: P^T L D L^* P.
  * This function is provided for debug purpose. */
 template<typename MatrixType, int _UpLo>
-EIGEN_DEVICE_FUNC 
 MatrixType LDLT<MatrixType,_UpLo>::reconstructedMatrix() const
 {
   eigen_assert(m_isInitialized && "LDLT is not initialized.");
@@ -592,7 +578,6 @@ MatrixType LDLT<MatrixType,_UpLo>::reconstructedMatrix() const
   * \returns the Cholesky decomposition with full pivoting without square root of \c *this
   */
 template<typename MatrixType, unsigned int UpLo>
-EIGEN_DEVICE_FUNC 
 inline const LDLT<typename SelfAdjointView<MatrixType, UpLo>::PlainObject, UpLo>
 SelfAdjointView<MatrixType, UpLo>::ldlt() const
 {
@@ -603,7 +588,6 @@ SelfAdjointView<MatrixType, UpLo>::ldlt() const
   * \returns the Cholesky decomposition with full pivoting without square root of \c *this
   */
 template<typename Derived>
-EIGEN_DEVICE_FUNC 
 inline const LDLT<typename MatrixBase<Derived>::PlainObject>
 MatrixBase<Derived>::ldlt() const
 {

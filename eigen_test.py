@@ -25,7 +25,7 @@ kernel_code = kernel_code_template.format()
 mod = compiler.SourceModule(kernel_code, options=\
                         ['-use_fast_math', \
                         '-I/home/dattalab/Code/cuda-tests/include', \
-                        '-I/home/dattalab/Code/cuda-tests/include/Eigen'\
+                        '-I/home/dattalab/Code/cuda-tests/include/Eigen',\
                         '--compiler-options', '-w'], no_extern_c=True)
 
 # get the kernel function from the compiled module
@@ -35,7 +35,7 @@ rotation = mod.get_function("EigenTransformTest")
 idtest = mod.get_function("EigenIdentityTest")
 cholesky = mod.get_function("EigenCholeskyTest")
 
-# rotation(grid=(1,1,1),block=(1,1,1))
+rotation(grid=(1,1,1),block=(1,1,1))
 cholesky(grid=(1,1,1),block=(1,1,1))
 driver.Context.synchronize()
 eigen(grid = (100,1,1), block = (32,1,1))

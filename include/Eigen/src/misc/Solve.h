@@ -36,17 +36,17 @@ template<typename _DecompositionType, typename Rhs> struct solve_retval_base
   typedef _DecompositionType DecompositionType;
   typedef ReturnByValue<solve_retval_base> Base;
   typedef typename Base::Index Index;
-  
+
   solve_retval_base(const DecompositionType& dec, const Rhs& rhs)
     : m_dec(dec), m_rhs(rhs)
   {}
 
-  EIGEN_DEVICE_FUNC inline Index rows() const { return m_dec.cols(); }
-  EIGEN_DEVICE_FUNC inline Index cols() const { return m_rhs.cols(); }
-  EIGEN_DEVICE_FUNC inline const DecompositionType& dec() const { return m_dec; }
-  EIGEN_DEVICE_FUNC inline const RhsNestedCleaned& rhs() const { return m_rhs; }
+  inline Index rows() const { return m_dec.cols(); }
+  inline Index cols() const { return m_rhs.cols(); }
+  inline const DecompositionType& dec() const { return m_dec; }
+  inline const RhsNestedCleaned& rhs() const { return m_rhs; }
 
-  template<typename Dest> EIGEN_DEVICE_FUNC inline void evalTo(Dest& dst) const
+  template<typename Dest> inline void evalTo(Dest& dst) const
   {
     static_cast<const solve_retval<DecompositionType,Rhs>*>(this)->evalTo(dst);
   }

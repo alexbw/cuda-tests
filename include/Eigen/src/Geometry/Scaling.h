@@ -43,26 +43,24 @@ protected:
 public:
 
   /** Default constructor without initialization. */
-  EIGEN_DEVICE_FUNC
   UniformScaling() {}
   /** Constructs and initialize a uniform scaling transformation */
+  explicit inline UniformScaling(const Scalar& s) : m_factor(s) {}
 
-  explicit EIGEN_DEVICE_FUNC inline UniformScaling(const Scalar& s) : m_factor(s) {}
-
-  EIGEN_DEVICE_FUNC inline const Scalar& factor() const { return m_factor; }
-  EIGEN_DEVICE_FUNC inline Scalar& factor() { return m_factor; }
+  inline const Scalar& factor() const { return m_factor; }
+  inline Scalar& factor() { return m_factor; }
 
   /** Concatenates two uniform scaling */
-  EIGEN_DEVICE_FUNC inline UniformScaling operator* (const UniformScaling& other) const
+  inline UniformScaling operator* (const UniformScaling& other) const
   { return UniformScaling(m_factor * other.factor()); }
 
   /** Concatenates a uniform scaling and a translation */
   template<int Dim>
-  EIGEN_DEVICE_FUNC inline Transform<Scalar,Dim,Affine> operator* (const Translation<Scalar,Dim>& t) const;
+  inline Transform<Scalar,Dim,Affine> operator* (const Translation<Scalar,Dim>& t) const;
 
   /** Concatenates a uniform scaling and an affine transformation */
   template<int Dim, int Mode, int Options>
-  EIGEN_DEVICE_FUNC inline Transform<Scalar,Dim,(int(Mode)==int(Isometry)?Affine:Mode)> operator* (const Transform<Scalar,Dim, Mode, Options>& t) const
+  inline Transform<Scalar,Dim,(int(Mode)==int(Isometry)?Affine:Mode)> operator* (const Transform<Scalar,Dim, Mode, Options>& t) const
   {
    Transform<Scalar,Dim,(int(Mode)==int(Isometry)?Affine:Mode)> res = t;
    res.prescale(factor());
@@ -72,15 +70,15 @@ public:
   /** Concatenates a uniform scaling and a linear transformation matrix */
   // TODO returns an expression
   template<typename Derived>
-  EIGEN_DEVICE_FUNC inline typename internal::plain_matrix_type<Derived>::type operator* (const MatrixBase<Derived>& other) const
+  inline typename internal::plain_matrix_type<Derived>::type operator* (const MatrixBase<Derived>& other) const
   { return other * m_factor; }
 
   template<typename Derived,int Dim>
-  EIGEN_DEVICE_FUNC inline Matrix<Scalar,Dim,Dim> operator*(const RotationBase<Derived,Dim>& r) const
+  inline Matrix<Scalar,Dim,Dim> operator*(const RotationBase<Derived,Dim>& r) const
   { return r.toRotationMatrix() * m_factor; }
 
   /** \returns the inverse scaling */
-  EIGEN_DEVICE_FUNC inline UniformScaling inverse() const
+  inline UniformScaling inverse() const
   { return UniformScaling(Scalar(1)/m_factor); }
 
   /** \returns \c *this with scalar type casted to \a NewScalarType
@@ -89,19 +87,19 @@ public:
     * then this function smartly returns a const reference to \c *this.
     */
   template<typename NewScalarType>
-  EIGEN_DEVICE_FUNC inline UniformScaling<NewScalarType> cast() const
+  inline UniformScaling<NewScalarType> cast() const
   { return UniformScaling<NewScalarType>(NewScalarType(m_factor)); }
 
   /** Copy constructor with scalar type conversion */
   template<typename OtherScalarType>
-  EIGEN_DEVICE_FUNC inline explicit UniformScaling(const UniformScaling<OtherScalarType>& other)
+  inline explicit UniformScaling(const UniformScaling<OtherScalarType>& other)
   { m_factor = Scalar(other.factor()); }
 
   /** \returns \c true if \c *this is approximately equal to \a other, within the precision
     * determined by \a prec.
     *
     * \sa MatrixBase::isApprox() */
-  EIGEN_DEVICE_FUNC bool isApprox(const UniformScaling& other, const typename NumTraits<Scalar>::Real& prec = NumTraits<Scalar>::dummy_precision()) const
+  bool isApprox(const UniformScaling& other, const typename NumTraits<Scalar>::Real& prec = NumTraits<Scalar>::dummy_precision()) const
   { return internal::isApprox(m_factor, other.factor(), prec); }
 
 };
@@ -110,33 +108,32 @@ public:
 // NOTE this operator is defiend in MatrixBase and not as a friend function
 // of UniformScaling to fix an internal crash of Intel's ICC
 template<typename Derived> typename MatrixBase<Derived>::ScalarMultipleReturnType
-EIGEN_DEVICE_FUNC
 MatrixBase<Derived>::operator*(const UniformScaling<Scalar>& s) const
 { return derived() * s.factor(); }
 
 /** Constructs a uniform scaling from scale factor \a s */
-static EIGEN_DEVICE_FUNC inline UniformScaling<float> Scaling(float s) { return UniformScaling<float>(s); }
+static inline UniformScaling<float> Scaling(float s) { return UniformScaling<float>(s); }
 /** Constructs a uniform scaling from scale factor \a s */
-static EIGEN_DEVICE_FUNC inline UniformScaling<double> Scaling(double s) { return UniformScaling<double>(s); }
+static inline UniformScaling<double> Scaling(double s) { return UniformScaling<double>(s); }
 /** Constructs a uniform scaling from scale factor \a s */
 template<typename RealScalar>
-static EIGEN_DEVICE_FUNC inline UniformScaling<std::complex<RealScalar> > Scaling(const std::complex<RealScalar>& s)
+static inline UniformScaling<std::complex<RealScalar> > Scaling(const std::complex<RealScalar>& s)
 { return UniformScaling<std::complex<RealScalar> >(s); }
 
 /** Constructs a 2D axis aligned scaling */
 template<typename Scalar>
-static EIGEN_DEVICE_FUNC inline DiagonalMatrix<Scalar,2> Scaling(const Scalar& sx, const Scalar& sy)
+static inline DiagonalMatrix<Scalar,2> Scaling(const Scalar& sx, const Scalar& sy)
 { return DiagonalMatrix<Scalar,2>(sx, sy); }
 /** Constructs a 3D axis aligned scaling */
 template<typename Scalar>
-static EIGEN_DEVICE_FUNC inline DiagonalMatrix<Scalar,3> Scaling(const Scalar& sx, const Scalar& sy, const Scalar& sz)
+static inline DiagonalMatrix<Scalar,3> Scaling(const Scalar& sx, const Scalar& sy, const Scalar& sz)
 { return DiagonalMatrix<Scalar,3>(sx, sy, sz); }
 
 /** Constructs an axis aligned scaling expression from vector expression \a coeffs
   * This is an alias for coeffs.asDiagonal()
   */
 template<typename Derived>
-static EIGEN_DEVICE_FUNC inline const DiagonalWrapper<const Derived> Scaling(const MatrixBase<Derived>& coeffs)
+static inline const DiagonalWrapper<const Derived> Scaling(const MatrixBase<Derived>& coeffs)
 { return coeffs.asDiagonal(); }
 
 /** \addtogroup Geometry_Module */
@@ -153,7 +150,7 @@ typedef DiagonalMatrix<double,3> AlignedScaling3d;
 
 template<typename Scalar>
 template<int Dim>
-EIGEN_DEVICE_FUNC inline Transform<Scalar,Dim,Affine>
+inline Transform<Scalar,Dim,Affine>
 UniformScaling<Scalar>::operator* (const Translation<Scalar,Dim>& t) const
 {
   Transform<Scalar,Dim,Affine> res;

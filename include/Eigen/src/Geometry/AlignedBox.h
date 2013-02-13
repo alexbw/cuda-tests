@@ -56,23 +56,19 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(_Scalar,_AmbientDim)
 
 
   /** Default constructor initializing a null box. */
-  EIGEN_DEVICE_FUNC
   inline explicit AlignedBox()
   { if (AmbientDimAtCompileTime!=Dynamic) setEmpty(); }
 
   /** Constructs a null box with \a _dim the dimension of the ambient space. */
-  EIGEN_DEVICE_FUNC
   inline explicit AlignedBox(Index _dim) : m_min(_dim), m_max(_dim)
   { setEmpty(); }
 
   /** Constructs a box with extremities \a _min and \a _max. */
   template<typename OtherVectorType1, typename OtherVectorType2>
-  EIGEN_DEVICE_FUNC
   inline AlignedBox(const OtherVectorType1& _min, const OtherVectorType2& _max) : m_min(_min), m_max(_max) {}
 
   /** Constructs a box containing a single point \a p. */
   template<typename Derived>
-  EIGEN_DEVICE_FUNC
   inline explicit AlignedBox(const MatrixBase<Derived>& a_p)
   {
     const typename internal::nested<Derived,2>::type p(a_p.derived());
@@ -83,35 +79,35 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(_Scalar,_AmbientDim)
   ~AlignedBox() {}
 
   /** \returns the dimension in which the box holds */
-  EIGEN_DEVICE_FUNC inline Index dim() const { return AmbientDimAtCompileTime==Dynamic ? m_min.size() : Index(AmbientDimAtCompileTime); }
+  inline Index dim() const { return AmbientDimAtCompileTime==Dynamic ? m_min.size() : Index(AmbientDimAtCompileTime); }
 
   /** \deprecated use isEmpty */
-  EIGEN_DEVICE_FUNC inline bool isNull() const { return isEmpty(); }
+  inline bool isNull() const { return isEmpty(); }
 
   /** \deprecated use setEmpty */
-  EIGEN_DEVICE_FUNC inline void setNull() { setEmpty(); }
+  inline void setNull() { setEmpty(); }
 
   /** \returns true if the box is empty. */
-  EIGEN_DEVICE_FUNC inline bool isEmpty() const { return (m_min.array() > m_max.array()).any(); }
+  inline bool isEmpty() const { return (m_min.array() > m_max.array()).any(); }
 
   /** Makes \c *this an empty box. */
-  EIGEN_DEVICE_FUNC inline void setEmpty()
+  inline void setEmpty()
   {
     m_min.setConstant( ScalarTraits::highest() );
     m_max.setConstant( ScalarTraits::lowest() );
   }
 
   /** \returns the minimal corner */
-  EIGEN_DEVICE_FUNC inline const VectorType& (min)() const { return m_min; }
+  inline const VectorType& (min)() const { return m_min; }
   /** \returns a non const reference to the minimal corner */
-  EIGEN_DEVICE_FUNC inline VectorType& (min)() { return m_min; }
+  inline VectorType& (min)() { return m_min; }
   /** \returns the maximal corner */
-  EIGEN_DEVICE_FUNC inline const VectorType& (max)() const { return m_max; }
+  inline const VectorType& (max)() const { return m_max; }
   /** \returns a non const reference to the maximal corner */
-  EIGEN_DEVICE_FUNC inline VectorType& (max)() { return m_max; }
+  inline VectorType& (max)() { return m_max; }
 
   /** \returns the center of the box */
-  EIGEN_DEVICE_FUNC inline const CwiseUnaryOp<internal::scalar_quotient1_op<Scalar>,
+  inline const CwiseUnaryOp<internal::scalar_quotient1_op<Scalar>,
                             const CwiseBinaryOp<internal::scalar_sum_op<Scalar>, const VectorType, const VectorType> >
   center() const
   { return (m_min+m_max)/2; }
@@ -120,18 +116,18 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(_Scalar,_AmbientDim)
     * Note that this function does not get the same
     * result for integral or floating scalar types: see
     */
-  EIGEN_DEVICE_FUNC inline const CwiseBinaryOp< internal::scalar_difference_op<Scalar>, const VectorType, const VectorType> sizes() const
+  inline const CwiseBinaryOp< internal::scalar_difference_op<Scalar>, const VectorType, const VectorType> sizes() const
   { return m_max - m_min; }
 
   /** \returns the volume of the bounding box */
-  EIGEN_DEVICE_FUNC inline Scalar volume() const
+  inline Scalar volume() const
   { return sizes().prod(); }
 
   /** \returns an expression for the bounding box diagonal vector
     * if the length of the diagonal is needed: diagonal().norm()
     * will provide it.
     */
-  EIGEN_DEVICE_FUNC inline CwiseBinaryOp< internal::scalar_difference_op<Scalar>, const VectorType, const VectorType> diagonal() const
+  inline CwiseBinaryOp< internal::scalar_difference_op<Scalar>, const VectorType, const VectorType> diagonal() const
   { return sizes(); }
 
   /** \returns the vertex of the bounding box at the corner defined by
@@ -143,7 +139,7 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(_Scalar,_AmbientDim)
     * For 3D bounding boxes, the following names are added:
     * BottomLeftCeil, BottomRightCeil, TopLeftCeil, TopRightCeil.
     */
-  EIGEN_DEVICE_FUNC inline VectorType corner(CornerType corner) const
+  inline VectorType corner(CornerType corner) const
   {
     EIGEN_STATIC_ASSERT(_AmbientDim <= 3, THIS_METHOD_IS_ONLY_FOR_VECTORS_OF_A_SPECIFIC_SIZE);
 
@@ -161,7 +157,7 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(_Scalar,_AmbientDim)
 
   /** \returns a random point inside the bounding box sampled with
    * a uniform distribution */
-  EIGEN_DEVICE_FUNC inline VectorType sample() const
+  inline VectorType sample() const
   {
     VectorType r;
     for(Index d=0; d<dim(); ++d)
@@ -179,19 +175,19 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(_Scalar,_AmbientDim)
 
   /** \returns true if the point \a p is inside the box \c *this. */
   template<typename Derived>
-  EIGEN_DEVICE_FUNC inline bool contains(const MatrixBase<Derived>& a_p) const
+  inline bool contains(const MatrixBase<Derived>& a_p) const
   {
     typename internal::nested<Derived,2>::type p(a_p.derived());
     return (m_min.array()<=p.array()).all() && (p.array()<=m_max.array()).all();
   }
 
   /** \returns true if the box \a b is entirely inside the box \c *this. */
-  EIGEN_DEVICE_FUNC inline bool contains(const AlignedBox& b) const
+  inline bool contains(const AlignedBox& b) const
   { return (m_min.array()<=(b.min)().array()).all() && ((b.max)().array()<=m_max.array()).all(); }
 
   /** Extends \c *this such that it contains the point \a p and returns a reference to \c *this. */
   template<typename Derived>
-  EIGEN_DEVICE_FUNC inline AlignedBox& extend(const MatrixBase<Derived>& a_p)
+  inline AlignedBox& extend(const MatrixBase<Derived>& a_p)
   {
     typename internal::nested<Derived,2>::type p(a_p.derived());
     m_min = m_min.cwiseMin(p);
@@ -200,7 +196,7 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(_Scalar,_AmbientDim)
   }
 
   /** Extends \c *this such that it contains the box \a b and returns a reference to \c *this. */
-  EIGEN_DEVICE_FUNC inline AlignedBox& extend(const AlignedBox& b)
+  inline AlignedBox& extend(const AlignedBox& b)
   {
     m_min = m_min.cwiseMin(b.m_min);
     m_max = m_max.cwiseMax(b.m_max);
@@ -208,7 +204,7 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(_Scalar,_AmbientDim)
   }
 
   /** Clamps \c *this by the box \a b and returns a reference to \c *this. */
-  EIGEN_DEVICE_FUNC inline AlignedBox& clamp(const AlignedBox& b)
+  inline AlignedBox& clamp(const AlignedBox& b)
   {
     m_min = m_min.cwiseMax(b.m_min);
     m_max = m_max.cwiseMin(b.m_max);
@@ -216,16 +212,16 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(_Scalar,_AmbientDim)
   }
 
   /** Returns an AlignedBox that is the intersection of \a b and \c *this */
-  EIGEN_DEVICE_FUNC inline AlignedBox intersection(const AlignedBox& b) const
+  inline AlignedBox intersection(const AlignedBox& b) const
   {return AlignedBox(m_min.cwiseMax(b.m_min), m_max.cwiseMin(b.m_max)); }
 
   /** Returns an AlignedBox that is the union of \a b and \c *this */
-  EIGEN_DEVICE_FUNC inline AlignedBox merged(const AlignedBox& b) const
+  inline AlignedBox merged(const AlignedBox& b) const
   { return AlignedBox(m_min.cwiseMin(b.m_min), m_max.cwiseMax(b.m_max)); }
 
   /** Translate \c *this by the vector \a t and returns a reference to \c *this. */
   template<typename Derived>
-  EIGEN_DEVICE_FUNC inline AlignedBox& translate(const MatrixBase<Derived>& a_t)
+  inline AlignedBox& translate(const MatrixBase<Derived>& a_t)
   {
     const typename internal::nested<Derived,2>::type t(a_t.derived());
     m_min += t;
@@ -238,27 +234,27 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(_Scalar,_AmbientDim)
     * \sa exteriorDistance()
     */
   template<typename Derived>
-  EIGEN_DEVICE_FUNC inline Scalar squaredExteriorDistance(const MatrixBase<Derived>& a_p) const;
+  inline Scalar squaredExteriorDistance(const MatrixBase<Derived>& a_p) const;
 
   /** \returns the squared distance between the boxes \a b and \c *this,
     * and zero if the boxes intersect.
     * \sa exteriorDistance()
     */
-  EIGEN_DEVICE_FUNC inline Scalar squaredExteriorDistance(const AlignedBox& b) const;
+  inline Scalar squaredExteriorDistance(const AlignedBox& b) const;
 
   /** \returns the distance between the point \a p and the box \c *this,
     * and zero if \a p is inside the box.
     * \sa squaredExteriorDistance()
     */
   template<typename Derived>
-  EIGEN_DEVICE_FUNC inline NonInteger exteriorDistance(const MatrixBase<Derived>& p) const
+  inline NonInteger exteriorDistance(const MatrixBase<Derived>& p) const
   { using std::sqrt; return sqrt(NonInteger(squaredExteriorDistance(p))); }
 
   /** \returns the distance between the boxes \a b and \c *this,
     * and zero if the boxes intersect.
     * \sa squaredExteriorDistance()
     */
-  EIGEN_DEVICE_FUNC inline NonInteger exteriorDistance(const AlignedBox& b) const
+  inline NonInteger exteriorDistance(const AlignedBox& b) const
   { using std::sqrt; return sqrt(NonInteger(squaredExteriorDistance(b))); }
 
   /** \returns \c *this with scalar type casted to \a NewScalarType
@@ -267,7 +263,7 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(_Scalar,_AmbientDim)
     * then this function smartly returns a const reference to \c *this.
     */
   template<typename NewScalarType>
-  EIGEN_DEVICE_FUNC inline typename internal::cast_return_type<AlignedBox,
+  inline typename internal::cast_return_type<AlignedBox,
            AlignedBox<NewScalarType,AmbientDimAtCompileTime> >::type cast() const
   {
     return typename internal::cast_return_type<AlignedBox,
@@ -276,7 +272,7 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(_Scalar,_AmbientDim)
 
   /** Copy constructor with scalar type conversion */
   template<typename OtherScalarType>
-  EIGEN_DEVICE_FUNC inline explicit AlignedBox(const AlignedBox<OtherScalarType,AmbientDimAtCompileTime>& other)
+  inline explicit AlignedBox(const AlignedBox<OtherScalarType,AmbientDimAtCompileTime>& other)
   {
     m_min = (other.min)().template cast<Scalar>();
     m_max = (other.max)().template cast<Scalar>();
@@ -286,7 +282,7 @@ EIGEN_MAKE_ALIGNED_OPERATOR_NEW_IF_VECTORIZABLE_FIXED_SIZE(_Scalar,_AmbientDim)
     * determined by \a prec.
     *
     * \sa MatrixBase::isApprox() */
-  EIGEN_DEVICE_FUNC bool isApprox(const AlignedBox& other, RealScalar prec = ScalarTraits::dummy_precision()) const
+  bool isApprox(const AlignedBox& other, RealScalar prec = ScalarTraits::dummy_precision()) const
   { return m_min.isApprox(other.m_min, prec) && m_max.isApprox(other.m_max, prec); }
 
 protected:
@@ -298,7 +294,6 @@ protected:
 
 template<typename Scalar,int AmbientDim>
 template<typename Derived>
-EIGEN_DEVICE_FUNC
 inline Scalar AlignedBox<Scalar,AmbientDim>::squaredExteriorDistance(const MatrixBase<Derived>& a_p) const
 {
   const typename internal::nested<Derived,2*AmbientDim>::type p(a_p.derived());
@@ -321,7 +316,6 @@ inline Scalar AlignedBox<Scalar,AmbientDim>::squaredExteriorDistance(const Matri
 }
 
 template<typename Scalar,int AmbientDim>
-EIGEN_DEVICE_FUNC
 inline Scalar AlignedBox<Scalar,AmbientDim>::squaredExteriorDistance(const AlignedBox& b) const
 {
   Scalar dist2(0);

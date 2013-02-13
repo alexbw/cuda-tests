@@ -76,43 +76,43 @@ public:
     * \warning If the \a axis vector is not normalized, then the angle-axis object
     *          represents an invalid rotation. */
   template<typename Derived>
-  EIGEN_DEVICE_FUNC inline AngleAxis(const Scalar& angle, const MatrixBase<Derived>& axis) : m_axis(axis), m_angle(angle) {}
+  inline AngleAxis(const Scalar& angle, const MatrixBase<Derived>& axis) : m_axis(axis), m_angle(angle) {}
   /** Constructs and initialize the angle-axis rotation from a quaternion \a q. */
-  template<typename QuatDerived> EIGEN_DEVICE_FUNC inline explicit AngleAxis(const QuaternionBase<QuatDerived>& q) { *this = q; }
+  template<typename QuatDerived> inline explicit AngleAxis(const QuaternionBase<QuatDerived>& q) { *this = q; }
   /** Constructs and initialize the angle-axis rotation from a 3x3 rotation matrix. */
   template<typename Derived>
-  EIGEN_DEVICE_FUNC inline explicit AngleAxis(const MatrixBase<Derived>& m) { *this = m; }
+  inline explicit AngleAxis(const MatrixBase<Derived>& m) { *this = m; }
 
-  EIGEN_DEVICE_FUNC Scalar angle() const { return m_angle; }
-  EIGEN_DEVICE_FUNC Scalar& angle() { return m_angle; }
+  Scalar angle() const { return m_angle; }
+  Scalar& angle() { return m_angle; }
 
-  EIGEN_DEVICE_FUNC const Vector3& axis() const { return m_axis; }
-  EIGEN_DEVICE_FUNC Vector3& axis() { return m_axis; }
+  const Vector3& axis() const { return m_axis; }
+  Vector3& axis() { return m_axis; }
 
   /** Concatenates two rotations */
-  EIGEN_DEVICE_FUNC inline QuaternionType operator* (const AngleAxis& other) const
+  inline QuaternionType operator* (const AngleAxis& other) const
   { return QuaternionType(*this) * QuaternionType(other); }
 
   /** Concatenates two rotations */
-  EIGEN_DEVICE_FUNC inline QuaternionType operator* (const QuaternionType& other) const
+  inline QuaternionType operator* (const QuaternionType& other) const
   { return QuaternionType(*this) * other; }
 
   /** Concatenates two rotations */
-  friend EIGEN_DEVICE_FUNC inline QuaternionType operator* (const QuaternionType& a, const AngleAxis& b)
+  friend inline QuaternionType operator* (const QuaternionType& a, const AngleAxis& b)
   { return a * QuaternionType(b); }
 
   /** \returns the inverse rotation, i.e., an angle-axis with opposite rotation angle */
-  EIGEN_DEVICE_FUNC AngleAxis inverse() const
+  AngleAxis inverse() const
   { return AngleAxis(-m_angle, m_axis); }
 
   template<class QuatDerived>
-  EIGEN_DEVICE_FUNC AngleAxis& operator=(const QuaternionBase<QuatDerived>& q);
+  AngleAxis& operator=(const QuaternionBase<QuatDerived>& q);
   template<typename Derived>
-  EIGEN_DEVICE_FUNC AngleAxis& operator=(const MatrixBase<Derived>& m);
+  AngleAxis& operator=(const MatrixBase<Derived>& m);
 
   template<typename Derived>
-  EIGEN_DEVICE_FUNC AngleAxis& fromRotationMatrix(const MatrixBase<Derived>& m);
-  EIGEN_DEVICE_FUNC Matrix3 toRotationMatrix(void) const;
+  AngleAxis& fromRotationMatrix(const MatrixBase<Derived>& m);
+  Matrix3 toRotationMatrix(void) const;
 
   /** \returns \c *this with scalar type casted to \a NewScalarType
     *
@@ -120,24 +120,24 @@ public:
     * then this function smartly returns a const reference to \c *this.
     */
   template<typename NewScalarType>
-  EIGEN_DEVICE_FUNC inline typename internal::cast_return_type<AngleAxis,AngleAxis<NewScalarType> >::type cast() const
+  inline typename internal::cast_return_type<AngleAxis,AngleAxis<NewScalarType> >::type cast() const
   { return typename internal::cast_return_type<AngleAxis,AngleAxis<NewScalarType> >::type(*this); }
 
   /** Copy constructor with scalar type conversion */
   template<typename OtherScalarType>
-  EIGEN_DEVICE_FUNC inline explicit AngleAxis(const AngleAxis<OtherScalarType>& other)
+  inline explicit AngleAxis(const AngleAxis<OtherScalarType>& other)
   {
     m_axis = other.axis().template cast<Scalar>();
     m_angle = Scalar(other.angle());
   }
 
-  static EIGEN_DEVICE_FUNC inline const AngleAxis Identity() { return AngleAxis(0, Vector3::UnitX()); }
+  static inline const AngleAxis Identity() { return AngleAxis(0, Vector3::UnitX()); }
 
   /** \returns \c true if \c *this is approximately equal to \a other, within the precision
     * determined by \a prec.
     *
     * \sa MatrixBase::isApprox() */
-  EIGEN_DEVICE_FUNC bool isApprox(const AngleAxis& other, const typename NumTraits<Scalar>::Real& prec = NumTraits<Scalar>::dummy_precision()) const
+  bool isApprox(const AngleAxis& other, const typename NumTraits<Scalar>::Real& prec = NumTraits<Scalar>::dummy_precision()) const
   { return m_axis.isApprox(other.m_axis, prec) && internal::isApprox(m_angle,other.m_angle, prec); }
 };
 
@@ -156,7 +156,6 @@ typedef AngleAxis<double> AngleAxisd;
   */
 template<typename Scalar>
 template<typename QuatDerived>
-EIGEN_DEVICE_FUNC
 AngleAxis<Scalar>& AngleAxis<Scalar>::operator=(const QuaternionBase<QuatDerived>& q)
 {
   using std::acos;
@@ -181,7 +180,6 @@ AngleAxis<Scalar>& AngleAxis<Scalar>::operator=(const QuaternionBase<QuatDerived
   */
 template<typename Scalar>
 template<typename Derived>
-EIGEN_DEVICE_FUNC
 AngleAxis<Scalar>& AngleAxis<Scalar>::operator=(const MatrixBase<Derived>& mat)
 {
   // Since a direct conversion would not be really faster,
@@ -194,7 +192,6 @@ AngleAxis<Scalar>& AngleAxis<Scalar>::operator=(const MatrixBase<Derived>& mat)
 **/
 template<typename Scalar>
 template<typename Derived>
-EIGEN_DEVICE_FUNC
 AngleAxis<Scalar>& AngleAxis<Scalar>::fromRotationMatrix(const MatrixBase<Derived>& mat)
 {
   return *this = QuaternionType(mat);
@@ -204,7 +201,6 @@ AngleAxis<Scalar>& AngleAxis<Scalar>::fromRotationMatrix(const MatrixBase<Derive
   */
 template<typename Scalar>
 typename AngleAxis<Scalar>::Matrix3
-EIGEN_DEVICE_FUNC
 AngleAxis<Scalar>::toRotationMatrix(void) const
 {
   using std::sin;

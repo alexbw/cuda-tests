@@ -127,7 +127,6 @@ class NoAlias
   * \sa class NoAlias
   */
 template<typename Derived>
-EIGEN_DEVICE_FUNC
 NoAlias<Derived,MatrixBase> MatrixBase<Derived>::noalias()
 {
   return derived();

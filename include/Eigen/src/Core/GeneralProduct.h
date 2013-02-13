@@ -546,7 +546,6 @@ template<> struct gemv_selector<OnTheRight,RowMajor,false>
 #ifndef __CUDACC__
 template<typename Derived>
 template<typename OtherDerived>
-EIGEN_DEVICE_FUNC
 inline const typename ProductReturnType<Derived, OtherDerived>::Type
 MatrixBase<Derived>::operator*(const MatrixBase<OtherDerived> &other) const
 {

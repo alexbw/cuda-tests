@@ -197,19 +197,15 @@ template<typename Derived> class MatrixBase
     lazyProduct(const MatrixBase<OtherDerived> &other) const;
 
     template<typename OtherDerived>
-    EIGEN_DEVICE_FUNC
     Derived& operator*=(const EigenBase<OtherDerived>& other);
 
     template<typename OtherDerived>
-    EIGEN_DEVICE_FUNC
     void applyOnTheLeft(const EigenBase<OtherDerived>& other);
 
     template<typename OtherDerived>
-    EIGEN_DEVICE_FUNC
     void applyOnTheRight(const EigenBase<OtherDerived>& other);
 
     template<typename DiagonalDerived>
-    EIGEN_DEVICE_FUNC
     const DiagonalProduct<Derived, DiagonalDerived, OnTheRight>
     operator*(const DiagonalBase<DiagonalDerived> &diagonal) const;
 
@@ -222,7 +218,6 @@ template<typename Derived> class MatrixBase
       template<typename OtherDerived>
       Scalar eigen2_dot(const MatrixBase<OtherDerived>& other) const;
     #endif
-
 
     RealScalar squaredNorm() const;
     RealScalar norm() const;
@@ -281,7 +276,7 @@ template<typename Derived> class MatrixBase
 
     const SparseView<Derived> sparseView(const Scalar& m_reference = Scalar(0),
                                          const typename NumTraits<Scalar>::Real& m_epsilon = NumTraits<Scalar>::dummy_precision()) const;
-    static const IdentityReturnType Identity();
+    EIGEN_DEVICE_FUNC static const IdentityReturnType Identity();
     static const IdentityReturnType Identity(Index rows, Index cols);
     static const BasisReturnType Unit(Index size, Index i);
     static const BasisReturnType Unit(Index i);

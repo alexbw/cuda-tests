@@ -92,7 +92,6 @@ struct umeyama_transform_matrix_type
 */
 template <typename Derived, typename OtherDerived>
 typename internal::umeyama_transform_matrix_type<Derived, OtherDerived>::type
-EIGEN_DEVICE_FUNC
 umeyama(const MatrixBase<Derived>& src, const MatrixBase<OtherDerived>& dst, bool with_scaling = true)
 {
   typedef typename internal::umeyama_transform_matrix_type<Derived, OtherDerived>::type TransformationMatrixType;

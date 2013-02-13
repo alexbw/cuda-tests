@@ -51,7 +51,6 @@
 
 // Handle NVCC/CUDA
 #ifdef __CUDACC__
-  // Let's see about this
   // Do not try to vectorize on CUDA!
   #define EIGEN_DONT_VECTORIZE
   // Do not try asserts on CUDA!

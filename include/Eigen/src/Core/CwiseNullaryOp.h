@@ -10,7 +10,6 @@
 #ifndef EIGEN_CWISE_NULLARY_OP_H
 #define EIGEN_CWISE_NULLARY_OP_H
 
-
 namespace Eigen {
 
 /** \class CwiseNullaryOp
@@ -64,27 +63,27 @@ class CwiseNullaryOp : internal::no_assignment_operator,
             && (ColsAtCompileTime == Dynamic || ColsAtCompileTime == nbCols));
     }
 
-    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index rows() const { return m_rows.value(); }
-    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index cols() const { return m_cols.value(); }
+    EIGEN_STRONG_INLINE Index rows() const { return m_rows.value(); }
+    EIGEN_STRONG_INLINE Index cols() const { return m_cols.value(); }
 
-    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar coeff(Index rowId, Index colId) const
+    EIGEN_STRONG_INLINE const Scalar coeff(Index rowId, Index colId) const
     {
       return m_functor(rowId, colId);
     }
 
     template<int LoadMode>
-    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE PacketScalar packet(Index rowId, Index colId) const
+    EIGEN_STRONG_INLINE PacketScalar packet(Index rowId, Index colId) const
     {
       return m_functor.packetOp(rowId, colId);
     }
 
-    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Scalar coeff(Index index) const
+    EIGEN_STRONG_INLINE const Scalar coeff(Index index) const
     {
       return m_functor(index);
     }
 
     template<int LoadMode>
-    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE PacketScalar packet(Index index) const
+    EIGEN_STRONG_INLINE PacketScalar packet(Index index) const
     {
       return m_functor.packetOp(index);
     }
@@ -697,7 +696,7 @@ MatrixBase<Derived>::Identity(Index nbRows, Index nbCols)
   * \sa Identity(Index,Index), setIdentity(), isIdentity()
   */
 template<typename Derived>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const typename MatrixBase<Derived>::IdentityReturnType
+EIGEN_STRONG_INLINE const typename MatrixBase<Derived>::IdentityReturnType
 MatrixBase<Derived>::Identity()
 {
   EIGEN_STATIC_ASSERT_FIXED_SIZE(Derived)
@@ -714,7 +713,7 @@ MatrixBase<Derived>::Identity()
   * \sa class CwiseNullaryOp, Identity(), Identity(Index,Index), setIdentity()
   */
 template<typename Derived>
-EIGEN_DEVICE_FUNC bool MatrixBase<Derived>::isIdentity
+bool MatrixBase<Derived>::isIdentity
 (const RealScalar& prec) const
 {
   for(Index j = 0; j < cols(); ++j)
@@ -741,7 +740,7 @@ namespace internal {
 template<typename Derived, bool Big = (Derived::SizeAtCompileTime>=16)>
 struct setIdentity_impl
 {
-  EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE Derived& run(Derived& m)
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived& run(Derived& m)
   {
     return m = Derived::Identity(m.rows(), m.cols());
   }
@@ -751,7 +750,7 @@ template<typename Derived>
 struct setIdentity_impl<Derived, true>
 {
   typedef typename Derived::Index Index;
-  static EIGEN_STRONG_INLINE Derived& run(Derived& m)
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived& run(Derived& m)
   {
     m.setZero();
     const Index size = (std::min)(m.rows(), m.cols());
