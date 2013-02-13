@@ -10,6 +10,7 @@ using namespace std;
 
  
 #define NVERTS 484
+#define NUMTRIS 940
 // ==============================
 // Helpers!
 // ==============================
@@ -98,6 +99,56 @@ __device__ inline float getZAtBarycentricCoordinate(Vector3f barycentricCoord, V
 }}
 
 
+__device__ void rotate(Matrix4f &transform, float rotx, float roty, float rotz) {{
+	rotx = deg2rad(rotx);
+    roty = deg2rad(roty);
+    rotz = deg2rad(rotz);
+
+    float cx = cos(rotx);
+    float sx = sin(rotx);
+    float cy = cos(roty);
+    float sy = sin(roty);
+    float cz = cos(rotz);
+    float sz = sin(rotz);
+
+    Matrix4f Rx = Matrix4f::Identity(); 
+    Matrix4f Ry = Matrix4f::Identity(); 
+    Matrix4f Rz = Matrix4f::Identity();
+    Rx = Rx*cx;
+    Ry = Ry*cy;
+    Rz = Rz*cz;
+
+    Rx(0,0) += 1.0 - cx;
+    Ry(1,1) += 1.0 - cy;
+    Rz(2,2) += 1.0 - cz;
+
+    Rx(1,2) += -sx;
+    Rx(2,1) += sx;
+
+    Ry(0,2) += sy;
+    Ry(2,0) += -sy;
+
+    Rz(0,1) += -sz;
+    Rz(1,0) += sz;
+
+    transform = transform*Rx*Ry*Rz;
+}}
+
+__device__ void translate(Matrix4f &transform, float transx, float transy, float transz)
+{{
+	transform(0,3) += transx;
+    transform(1,3) += transy;
+    transform(2,3) += transz;
+
+}}
+
+__device__ void scale(Matrix4f &transform, float scalex, float scaley, float scalez)
+{{
+	transform(0,0) *= scalex;
+	transform(1,1) *= scaley;
+	transform(2,2) *= scalez;
+}}
+
 __device__ Matrix4f calcLocalRotation(float rotx, float roty, float rotz,
                                       float transx, float transy, float transz) {{
 
@@ -160,15 +211,17 @@ __global__ void RasterKernel(GLVertex *vertices,
 	Vector3f v0(0.0, 0.0, 0.0);
 	Vector3f v1(0.0, 1.0, 0.0);
 	Vector3f v2(1.0, 0.0, 0.0);
-	// Matrix4f transform = Matrix4f::Identity();
-	Matrix4f transform = calcLocalRotation(30., 30., 0., 0., 0., 0.);
+	Matrix4f transform = Matrix4f::Identity();
+	rotate(transform, -90.0, 0.0, 0.0);
+
+	// Matrix4f transform = calcLocalRotation(-90, 0., 0., 0., 0., 0.);
 
 	for (int i=0; i < NVERTS; ++i) {{
 		Vector4f v(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
 		Vector4f vout = transform*v;
-		// outVertices[i].x = vout[0];
-		// outVertices[i].y = vout[1];
-		// outVertices[i].z = vout[2];
+		vertices[i].x = vout[0];
+		vertices[i].y = vout[1];
+		vertices[i].z = vout[2];
 		// printf("Before: %f. After: %f\n", v[1], vout[1]);
 	}}
 
@@ -176,13 +229,9 @@ __global__ void RasterKernel(GLVertex *vertices,
 	Vector3f b(20., 10., 0.);
 	Vector3f c(10., 20., 1.);
 	Vector3f pt(0.5, 0.5, 0.);
-	Vector3f bary = calcBarycentricCoordinate(pt,a,b,c);
-	bool inBounds = isBarycentricCoordinateInBounds(bary);
-	float interpZ = getZAtBarycentricCoordinate(bary,a,b,c);
 	Vector3f ll = getLowerLeftOfTriangle(a,b,c);
 	Vector3f ur = getUpperRightOfTriangle(a,b,c);
 
-	printf("Resolution: (%f,%f)\n", resolutionX, resolutionY);
 
 	for (int i=ll(1); i < ur(1); ++i) {{
 		for (int j=ll(0); j < ur(0); ++j) {{
@@ -197,17 +246,6 @@ __global__ void RasterKernel(GLVertex *vertices,
 		}}
 	}}
 
-
-	// for (int i=0; i < resolutionY; ++i) {{
-	// 	for (int j=0; j < resolutionX; ++j) {{
-	// 		Vector3f pt(i,j,0);
-	// 		Vector3f baryCoord = calcBarycentricCoordinate(pt,a,b,c);
-	// 		float interpZ = getZAtBarycentricCoordinate(baryCoord,a,b,c);
-	// 		int idx = i*resolutionX + j;
-	// 		depthBuffer[idx] = interpZ;
-	// 	}}
-	// }}
-	
 
 }}
 
