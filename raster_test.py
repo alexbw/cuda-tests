@@ -47,7 +47,7 @@ with open("raster_test.cu") as kernel_file:
 
 
 # In this kernel, currently no formatting
-kernel_code = kernel_code_template.format()
+kernel_code = kernel_code_template.format(resx=resolutionX, resy=resolutionY)
 
 
 # compile the kernel code 
@@ -141,7 +141,9 @@ driver.Context.synchronize()
 
 
 
-for (numBlocks, numThreads) in product([1,10,100], [1,16,32,64,128,256,512]):
+for (numBlocksRaster, numThreadsRaster, numBlocksLikelihood, numThreadsLikelihood) in product( 
+                                    [1,10,100], [1,16,32,64,128,256,512],
+                                    [1,10,100], [1,16,32,64,128,256,512]):
 
     numMicePerPass = numBlocks*numThreads
 
@@ -153,17 +155,25 @@ for (numBlocks, numThreads) in product([1,10,100], [1,16,32,64,128,256,512]):
             mouseVertices_gpu,
             mouseVertexIdx_gpu,
             synthPixels_gpu,
-            grid=(numBlocks,1,1),
-            block=(numThreads,1,1) )
+            grid=(numBlocksRaster,1,1),
+            block=(numThreadsRaster,1,1) )
+    likelihood(synthPixels_gpu,
+            realPixels_gpu,
+            likelihoods_gpu,
+            grid=(numBlocksLikelihood,1,1),
+            block=(numThreadsLikelihood,1,1))
+
 
     # Make sure the kernel has completed
     driver.Context.synchronize()
 
     # Hit the stopwatch
     raster_time = time.time() - raster_start
-    print "Rasterized {micesec} mice/sec [{b}/{t}]".format(micesec=numMicePerPass/raster_time,
-                                                            b = numBlocks,
-                                                            t = numThreads)
+    print "Rasterized {micesec} mice/sec [{br}/{tr}][{bl}/{tl}]".format(micesec=numMicePerPass/raster_time,
+                                                            br = numBlocksRaster,
+                                                            tr = numThreadsRaster,
+                                                            bl = numBlocksLikelihood,
+                                                            tl = numThreadsLikelihood)
 
 # Do a little display diagnostics
 depthBuffer = synthPixels_gpu.get()
@@ -180,33 +190,8 @@ realBuffer = realPixels_gpu.get()
 imshow(realBuffer)
 
 
-
-
-for (numBlocks, numThreads) in product([10], [256]):
-
-    numMicePerPass = numBlocks*numThreads
-
-    # Start the stopwatch
-    likelihood_start = time.time()    
-
-    likelihood(synthPixels_gpu,
-                realPixels_gpu,
-                likelihoods_gpu,
-                grid=(numBlocks,1,1),
-                block=(numThreads,1,1))
-
-    # Make sure the kernel has completed
-    driver.Context.synchronize()
-
-    # Hit the stopwatch
-    likelihood_time = time.time() - likelihood_start
-    print "Likelihooded {micesec} mice/sec [{b}/{t}]".format(micesec=numMicePerPass/likelihood_time,
-                                                            b = numBlocks,
-                                                            t = numThreads)
-
-
-
 l = likelihoods_gpu.get()
+assert np.allclose(l[0], np.sum(np.abs(depthBuffer-realBuffer))), "Likelihood gotta be right"
 
 
 

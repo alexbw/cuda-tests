@@ -13,8 +13,8 @@ using namespace std;
 #define NFACES 940
 #define N_JOINT_INFLUENCES 4
 #define NJOINTS 5
-#define RESOLUTION_X 64
-#define RESOLUTION_Y 64
+#define RESOLUTION_X {resx}
+#define RESOLUTION_Y {resy}
 #define NUMPIXELS_PER_MOUSE RESOLUTION_X*RESOLUTION_Y
 
 // ==============================
@@ -421,7 +421,7 @@ __global__ void rasterizeSerial(GLVertex *skinnedVertices,
     const uint bw = blockDim.x;
     const uint tx = threadIdx.x;
     // Make sure we're looking at the right data
-    // skinnedVertices += sizeof(GLVertex)*NVERTS*(bw*bx + tx);
+    skinnedVertices += NVERTS*(bw*bx + tx);
 
 
     // ======================================================================
