@@ -414,7 +414,7 @@ extern "C"
 __global__ void rasterizeSerial(GLVertex *skinnedVertices, 
                             GLVertex *vertices, // REMOVE THIS WHEN FK+SKINNING ARE IMPLEMENTED
                             GLTriangleFace *triangles,
-                            float *depthBuffer) 
+                            float *synthPixels) 
 {{
 
     const uint bx = blockIdx.x;
@@ -429,24 +429,21 @@ __global__ void rasterizeSerial(GLVertex *skinnedVertices,
     // HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK 
     // HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK 
     // Remove when FK and skinning are implemented
-    if (threadIdx.x == 0) {{
-        Matrix3f scale_matrix = scaleMatrix3D(RESOLUTION_X*0.3, RESOLUTION_Y*0.3, 24.0);
-        Vector3f translate_vector(RESOLUTION_X/2, RESOLUTION_Y/2, 0.);
-        for (int i=0; i < NVERTS; ++i) {{
-            // Grab from memory
-            Vector3f v(vertices[i].x, vertices[i].z, vertices[i].y);
+    Matrix3f scale_matrix = scaleMatrix3D(RESOLUTION_X*0.3, RESOLUTION_Y*0.3, 24.0);
+    Vector3f translate_vector(RESOLUTION_X/2, RESOLUTION_Y/2, 0.);
+    for (int i=0; i < NVERTS; ++i) {{
+        // Grab from memory
+        Vector3f v(vertices[i].x, vertices[i].z, vertices[i].y);
 
-            // Transform to screen space
-            v = scale_matrix*v;
-            v = v+translate_vector;
+        // Transform to screen space
+        v = scale_matrix*v;
+        v = v+translate_vector;
 
-            skinnedVertices[i].x = v(0);
-            skinnedVertices[i].y = v(1);
-            skinnedVertices[i].z = v(2);
-        }}
+        skinnedVertices[i].x = v(0);
+        skinnedVertices[i].y = v(1);
+        skinnedVertices[i].z = v(2);
     }}
 
-    __syncthreads();
     // END HACK END HACK END HACK END HACK END HACK END HACK END HACK END HACK
     // END HACK END HACK END HACK END HACK END HACK END HACK END HACK END HACK
     // END HACK END HACK END HACK END HACK END HACK END HACK END HACK END HACK
@@ -481,9 +478,9 @@ __global__ void rasterizeSerial(GLVertex *skinnedVertices,
                     float interpZ = getZAtBarycentricCoordinate(baryCoord,a,b,c);
                     long int idx = i*RESOLUTION_X + j;
                     idx += depthBufferOffset;
-                    float oldval = depthBuffer[idx];
+                    float oldval = synthPixels[idx];
                     if (oldval <= interpZ) {{
-                       atomicExch(&depthBuffer[idx], interpZ);
+                       atomicExch(&synthPixels[idx], interpZ);
                     }}
                 }}
                 
@@ -492,17 +489,29 @@ __global__ void rasterizeSerial(GLVertex *skinnedVertices,
     }}
 }}
 
+extern "C"
+// Fastest with 10 blocks, 256 threads
+// Also, faster than the cache version. 
+__global__ void likelihoodSerial(float *synthPixels, 
+                            float *realPixels,
+                            float *likelihood)
+{{
+    const uint bx = blockIdx.x;
+    const uint bw = blockDim.x;
+    const uint tx = threadIdx.x;
 
+    int mouseIdx = bx*bw + tx;
+    int synthPixelOffset = NUMPIXELS_PER_MOUSE*mouseIdx;
 
+    float accumulator = 0.0;
+    for (int i=0; i < NUMPIXELS_PER_MOUSE; ++i) {{
+        accumulator += abs(realPixels[i] - synthPixels[i+synthPixelOffset]);
 
+    }}
 
+    atomicExch(&likelihood[mouseIdx], accumulator);
 
-
-
-
-
-
-
+}}
 
 
 

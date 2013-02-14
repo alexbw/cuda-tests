@@ -1,6 +1,6 @@
 # TODO:
-# - Optimize rasterizer to work per-primitive
-# - Change CPU/GPU array pairs into driver.mem_alloc when transfer back is not needed
+# - Better parallel reduction (can work across mice, even)
+# - Free memory after use
 # - Change likelihoods from numMicePerPass to some multiple thereof,
 #       and increment the write location to do multiple passes per frame
 # - Pack vertices together as triangles to coalesce transfers
@@ -19,13 +19,13 @@ import pycuda.autoinit
 from pycuda.driver import func_cache
 from MouseData import MouseData
 from matplotlib.pyplot import *
-
+from itertools import product
 # First, grab the mouse, and all its wonderful parameters
 # Grab a mouse and its vertices
 m = MouseData(scenefile="mouse_mesh_low_poly3.npz")
 
 # SET TUNABLE PARAMETERS
-numBlocks = 10
+numBlocks = 100
 numThreads = 512
 numMicePerPass = numBlocks*numThreads
 resolutionX = np.int32(64)
@@ -34,9 +34,9 @@ numJoints = m.num_joints
 
 
 # Cache rules everything around me
-preferL1 = True
+preferL1 = False
 if preferL1:
-    pycuda.autoinit.context.set_cache_config(func_cache.PREFER_NONE)
+    pycuda.autoinit.context.set_cache_config(func_cache.PREFER_L1)
 else:
     pycuda.autoinit.context.set_cache_config(func_cache.PREFER_SHARED)
 
@@ -57,6 +57,7 @@ mod = compiler.SourceModule(kernel_code, options=\
                         '--optimize', '3', \
                         ], no_extern_c=True)
 raster = mod.get_function("rasterizeSerial")
+likelihood = mod.get_function("likelihoodSerial")
 
 
 # We need to upload stuff to the graphics card
@@ -138,27 +139,35 @@ jointTranslations_gpu = gpuarray.to_gpu(jointTranslations_cpu)
 # Make sure it's all UP THERE
 driver.Context.synchronize()
 
-# For-loops for autotuning performance
-raster_start = time.time()    
 
-# Run the kernel
-raster( skinnedVertices_gpu, 
-        mouseVertices_gpu,
-        mouseVertexIdx_gpu,
-        synthPixels_gpu,
-        grid=(numBlocks,1,1),
-        block=(numThreads,1,1) )
 
-# Make sure the kernel has completed
-driver.Context.synchronize()
+for (numBlocks, numThreads) in product([1,10,100], [1,16,32,64,128,256,512]):
 
-# Hit the stopwatch
-raster_time = time.time() - raster_start
-print "Rasterized {micesec} mice/sec".format(micesec=numMicePerPass/raster_time)
+    numMicePerPass = numBlocks*numThreads
+
+    # For-loops for autotuning performance
+    raster_start = time.time()    
+
+    # Run the kernel
+    raster( skinnedVertices_gpu, 
+            mouseVertices_gpu,
+            mouseVertexIdx_gpu,
+            synthPixels_gpu,
+            grid=(numBlocks,1,1),
+            block=(numThreads,1,1) )
+
+    # Make sure the kernel has completed
+    driver.Context.synchronize()
+
+    # Hit the stopwatch
+    raster_time = time.time() - raster_start
+    print "Rasterized {micesec} mice/sec [{b}/{t}]".format(micesec=numMicePerPass/raster_time,
+                                                            b = numBlocks,
+                                                            t = numThreads)
 
 # Do a little display diagnostics
 depthBuffer = synthPixels_gpu.get()
-offset = 511
+offset = 0
 depthBuffer = depthBuffer[resolutionY*offset:resolutionY*(offset+1),0:resolutionX]
 close('all')
 figure(figsize=(8,3))
@@ -167,25 +176,55 @@ subplot(1,2,1)
 imshow(depthBuffer)
 
 subplot(1,2,2)
-imshow(realPixels_gpu.get())
+realBuffer = realPixels_gpu.get()
+imshow(realBuffer)
+
+
+
+
+for (numBlocks, numThreads) in product([10], [256]):
+
+    numMicePerPass = numBlocks*numThreads
+
+    # Start the stopwatch
+    likelihood_start = time.time()    
+
+    likelihood(synthPixels_gpu,
+                realPixels_gpu,
+                likelihoods_gpu,
+                grid=(numBlocks,1,1),
+                block=(numThreads,1,1))
+
+    # Make sure the kernel has completed
+    driver.Context.synchronize()
+
+    # Hit the stopwatch
+    likelihood_time = time.time() - likelihood_start
+    print "Likelihooded {micesec} mice/sec [{b}/{t}]".format(micesec=numMicePerPass/likelihood_time,
+                                                            b = numBlocks,
+                                                            t = numThreads)
+
+
+
+l = likelihoods_gpu.get()
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Free everything up after the fact
+del synthPixels_gpu
+del realPixels_gpu
+del mouseVertices_gpu
+del mouseVertexIdx_gpu
+del skinnedVertices_gpu
+del jointWeights_gpu
+del jointWeightIndices_gpu
+del jointTransforms_gpu
+del inverseBindingMatrix_gpu
+del likelihoods_gpu
+del jointRotations_gpu
+del jointTranslations_gpu
 
 
 
