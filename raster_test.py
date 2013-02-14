@@ -140,28 +140,39 @@ jointTranslations_gpu = gpuarray.to_gpu(jointTranslations_cpu)
 driver.Context.synchronize()
 
 
-
+speeds = []
+# [10/128][300/16] is good
+# [10/256][300/16]
 for (numBlocksRaster, numThreadsRaster, numBlocksLikelihood, numThreadsLikelihood) in product( 
-                                    [1,10,100], [1,16,32,64,128,256,512],
-                                    [1,10,100], [1,16,32,64,128,256,512]):
+                                    [10], [128, 256],
+                                    [250, 300, 350], [8,16]):
 
-    numMicePerPass = numBlocks*numThreads
+    numTimesRedo = 20
+    numMicePerPassRaster = numTimesRedo*numBlocksRaster*numThreadsRaster
+    numMicePerPassLikelihood = numTimesRedo*numBlocksLikelihood*numThreadsLikelihood
+    numMicePerPass = max(numMicePerPassRaster,numMicePerPassLikelihood)
+    numLikelihoodPasses = 1
+    numRasterPasses = max(1, numMicePerPassLikelihood/numMicePerPassRaster)
+    numLikelihoodPasses = max(1, numMicePerPassRaster/numMicePerPassLikelihood)
+    print numMicePerPass
 
     # For-loops for autotuning performance
     raster_start = time.time()    
-
-    # Run the kernel
-    raster( skinnedVertices_gpu, 
-            mouseVertices_gpu,
-            mouseVertexIdx_gpu,
-            synthPixels_gpu,
-            grid=(numBlocksRaster,1,1),
-            block=(numThreadsRaster,1,1) )
-    likelihood(synthPixels_gpu,
-            realPixels_gpu,
-            likelihoods_gpu,
-            grid=(numBlocksLikelihood,1,1),
-            block=(numThreadsLikelihood,1,1))
+    for j in range(numTimesRedo):
+        # Run the kernel
+        for i in range(numRasterPasses):
+            raster( skinnedVertices_gpu, 
+                    mouseVertices_gpu,
+                    mouseVertexIdx_gpu,
+                    synthPixels_gpu,
+                    grid=(numBlocksRaster,1,1),
+                    block=(numThreadsRaster,1,1) )
+        for i in range(numLikelihoodPasses):
+            likelihood(synthPixels_gpu,
+                    realPixels_gpu,
+                    likelihoods_gpu,
+                    grid=(numBlocksLikelihood,1,1),
+                    block=(numThreadsLikelihood,1,1))
 
 
     # Make sure the kernel has completed
@@ -174,6 +185,15 @@ for (numBlocksRaster, numThreadsRaster, numBlocksLikelihood, numThreadsLikelihoo
                                                             tr = numThreadsRaster,
                                                             bl = numBlocksLikelihood,
                                                             tl = numThreadsLikelihood)
+    benchmark = {
+            "threadsRaster":numThreadsRaster,
+            "blocksRaster":numBlocksRaster,
+            "threadsLikelihood":numThreadsLikelihood,
+            "blocksLikelihood":numBlocksLikelihood,
+            "micepersec":numMicePerPass
+            }
+    speeds.append(benchmark)
+
 
 # Do a little display diagnostics
 depthBuffer = synthPixels_gpu.get()
