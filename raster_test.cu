@@ -12,6 +12,11 @@ using namespace std;
 #define NVERTS 484
 #define NFACES 940
 #define N_JOINT_INFLUENCES 4
+#define NJOINTS 5
+#define RESOLUTION_X 64
+#define RESOLUTION_Y 64
+#define NUMPIXELS_PER_MOUSE RESOLUTION_X*RESOLUTION_Y
+
 // ==============================
 // Helpers!
 // ==============================
@@ -288,15 +293,224 @@ __device__ inline Matrix4f EigenMatFromMemory(float *mat4inMemory)
     return m;
 }}
 
-// __device__ inline vector<FK(GLVertex *rotations, )
 
 // ==============================
 // Here's the actual work here!
 // ==============================
 
+extern "C"
+__global__ void rasterizeParallel(GLVertex *skinnedVertices, 
+                            GLVertex *vertices, // TODO: remove once FK and skinning exist.
+                            GLTriangleFace *triangles,
+                            float *depthBuffer)
+{{
+
+    const uint bx = blockIdx.x;
+    const uint bw = blockDim.x;
+    const uint tx = threadIdx.x;
+
+    // The block determines which primitive we're on
+    // printf("Working on triangle %d\n", bx);
+    const int primitiveIdx = bx;
+
+    Matrix3f scale_matrix = scaleMatrix3D(RESOLUTION_X*0.3, RESOLUTION_Y*0.3, 24.0);
+    Vector3f translate_vector(RESOLUTION_X/2, RESOLUTION_Y/2, 0.);
+
+    __shared__ Vector3f a;
+    __shared__ Vector3f b;
+    __shared__ Vector3f c;
+    __shared__ Vector3f ll;
+    __shared__ Vector3f ur;
+    __shared__ int boundingBoxWidth;
+    __shared__ int boundingBoxHeight;
+    __shared__ int numPixelsInBoundingBox;
+    __shared__ float *sharedDepthBuffer;
+
+    if (threadIdx.x == 0) {{
+
+        // Grab the triangle indices
+        unsigned short i0 = triangles[primitiveIdx].v0;
+        unsigned short i1 = triangles[primitiveIdx].v1;
+        unsigned short i2 = triangles[primitiveIdx].v2;
+    
+        // NOTE THE SWAP MANG
+        // MAYA's coordinates are left-handed, which I liketh not. 
+        a << vertices[i0].x, vertices[i0].y, vertices[i0].z;
+        b << vertices[i1].x, vertices[i1].y, vertices[i1].z;
+        c << vertices[i2].x, vertices[i2].y, vertices[i2].z;
+
+        // THIS IS A HACK UNTIL FK AND SKINNING ARE IMPLEMENTED
+        a = scale_matrix*a;
+        a = a+translate_vector;
+        b = scale_matrix*b;
+        b = b+translate_vector;
+        c = scale_matrix*c;
+        c = c+translate_vector;
+
+        // Find the bounding box
+        ll = getLowerLeftOfTriangle(a,b,c);
+        ur = getUpperRightOfTriangle(a,b,c);
+
+        boundingBoxWidth = (int)ceilf(ur(0) - ll(0));
+        boundingBoxHeight = (int)ceilf(ur(1) - ll(1));
+        numPixelsInBoundingBox = boundingBoxWidth*boundingBoxHeight;
+
+        // Create a space for shared memory to be written to
+        sharedDepthBuffer = (float *)malloc(numPixelsInBoundingBox*sizeof(float));
+
+    }}
+
+    __syncthreads();
+
+    for (int i=0; i < numPixelsInBoundingBox; ++i) {{
+        sharedDepthBuffer[i] = (float)(i);    }}
+
+    // All threads write into the sharedDepthBuffer
+    // for (int i=ll(1); i < ur(1); ++i) {{
+    //     for (int j=ll(0); j < ur(0); ++j) {{
+    //         Vector3f pt(j+0.5,i+0.5,0);
+    //         Vector3f baryCoord = calcBarycentricCoordinate(pt,a,b,c);
+    //         bool inTriangle = isBarycentricCoordinateInBounds(baryCoord);
+
+    //         if (inTriangle) {{
+    //             float interpZ = getZAtBarycentricCoordinate(baryCoord,a,b,c);
+    //             long int idx = i*RESOLUTION_X + j;
+    //             float oldval = depthBuffer[idx];
+    //             if (oldval <= interpZ) {{
+    //                atomicExch(&depthBuffer[idx], interpZ);
+    //             }}
+    //         }}
+            
+    //     }}
+    // }}
+
+    // __syncthreads();
+
+
+    // Write out to the depth buffer
+    // TODO: should use atomicCAS for this, I believe.
+    int counter = 0;
+    if (threadIdx.x == 0) {{
+        for (int i=ll(1); i < ur(1); ++i) {{
+            for (int j=ll(0); j < ur(0); ++j) {{
+                long int idx = i*RESOLUTION_X + j;
+                float oldVal = depthBuffer[idx];
+                float newVal = sharedDepthBuffer[counter];
+                newVal = 999.0;
+                if (oldVal <= newVal) {{
+                    atomicExch(&depthBuffer[idx], newVal);
+                }}
+                ++counter;
+            }}
+        }}
+    }}
+
+    // __syncthreads();
+
+
+}}
 
 extern "C"
-__global__ void RasterKernel(GLVertex *vertices, 
+__global__ void rasterizeSerial(GLVertex *skinnedVertices, 
+                            GLVertex *vertices, // REMOVE THIS WHEN FK+SKINNING ARE IMPLEMENTED
+                            GLTriangleFace *triangles,
+                            float *depthBuffer) 
+{{
+
+    const uint bx = blockIdx.x;
+    const uint bw = blockDim.x;
+    const uint tx = threadIdx.x;
+    // Make sure we're looking at the right data
+    // skinnedVertices += sizeof(GLVertex)*NVERTS*(bw*bx + tx);
+
+
+    // ======================================================================
+    // HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK 
+    // HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK 
+    // HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK 
+    // Remove when FK and skinning are implemented
+    if (threadIdx.x == 0) {{
+        Matrix3f scale_matrix = scaleMatrix3D(RESOLUTION_X*0.3, RESOLUTION_Y*0.3, 24.0);
+        Vector3f translate_vector(RESOLUTION_X/2, RESOLUTION_Y/2, 0.);
+        for (int i=0; i < NVERTS; ++i) {{
+            // Grab from memory
+            Vector3f v(vertices[i].x, vertices[i].z, vertices[i].y);
+
+            // Transform to screen space
+            v = scale_matrix*v;
+            v = v+translate_vector;
+
+            skinnedVertices[i].x = v(0);
+            skinnedVertices[i].y = v(1);
+            skinnedVertices[i].z = v(2);
+        }}
+    }}
+
+    __syncthreads();
+    // END HACK END HACK END HACK END HACK END HACK END HACK END HACK END HACK
+    // END HACK END HACK END HACK END HACK END HACK END HACK END HACK END HACK
+    // END HACK END HACK END HACK END HACK END HACK END HACK END HACK END HACK
+    // ======================================================================
+
+
+    int depthBufferOffset = NUMPIXELS_PER_MOUSE*(bx*bw + tx);
+    // For each triangle, rasterize the crap out of it
+    // (for now, don't care about overlaps)
+    for (int iface=0; iface < NFACES; ++iface) 
+    {{
+        unsigned short i0 = triangles[iface].v0;
+        unsigned short i1 = triangles[iface].v1;
+        unsigned short i2 = triangles[iface].v2;
+
+        // NOTE THE SWAP MANG
+        // MAYA's coordinates are left-handed, which I liketh not. 
+        Vector3f a(skinnedVertices[i0].x, skinnedVertices[i0].y, skinnedVertices[i0].z);
+        Vector3f b(skinnedVertices[i1].x, skinnedVertices[i1].y, skinnedVertices[i1].z);;
+        Vector3f c(skinnedVertices[i2].x, skinnedVertices[i2].y, skinnedVertices[i2].z);;
+        
+        Vector3f ll = getLowerLeftOfTriangle(a,b,c);
+        Vector3f ur = getUpperRightOfTriangle(a,b,c);
+
+        for (int i=ll(1); i < ur(1); ++i) {{
+            for (int j=ll(0); j < ur(0); ++j) {{
+                Vector3f pt(j+0.5,i+0.5,0);
+                Vector3f baryCoord = calcBarycentricCoordinate(pt,a,b,c);
+                bool inTriangle = isBarycentricCoordinateInBounds(baryCoord);
+
+                if (inTriangle) {{
+                    float interpZ = getZAtBarycentricCoordinate(baryCoord,a,b,c);
+                    long int idx = i*RESOLUTION_X + j;
+                    idx += depthBufferOffset;
+                    float oldval = depthBuffer[idx];
+                    if (oldval <= interpZ) {{
+                       atomicExch(&depthBuffer[idx], interpZ);
+                    }}
+                }}
+                
+            }}
+        }}
+    }}
+}}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+
+extern "C"
+__global__ void PlaygroundKernel(GLVertex *vertices, 
 							 GLTriangleFace *triangles,
 							 float *depthBuffer,
                              float *mouseImage,
@@ -305,8 +519,8 @@ __global__ void RasterKernel(GLVertex *vertices,
                              Plain4x4Matrix_f *jointWorldMatrix,
                              Plain4x4Matrix_f *inverseBindingMatrix,
                              int numJoints,
-							 float resolutionX,
-							 float resolutionY )
+							 int resolutionX,
+							 int resolutionY )
 {{
 
 	Matrix3f transform = scaleMatrix3D(30.0, 30.0, 30.0);
@@ -324,24 +538,25 @@ __global__ void RasterKernel(GLVertex *vertices,
 
 
     // Solve some FK, just a lil bit.
-    Matrix4f posingMatrix[10];
-    for (int i=0; i < numJoints; ++i) {{
+    Matrix4f posingMatrix[NJOINTS];
+    for (int i=0; i < NJOINTS; ++i) {{
         Matrix4f thisJointWorld = EigenMatFromMemory(jointWorldMatrix[i].matrix);
         Matrix4f thisInverseBinding = EigenMatFromMemory(inverseBindingMatrix[i].matrix);
         posingMatrix[i] = thisJointWorld*thisInverseBinding;
     }}
 
-    for (int ijoint=0; ijoint < numJoints; ++ijoint) {{
-        printf("Matrix%d\n[\n", ijoint);
-            for (int j=0; j < 4; ++j) {{
-                printf("%0.2f,%0.2f,%0.2f,%0.2f,\n", 
-                    posingMatrix[ijoint](j,0),
-                    posingMatrix[ijoint](j,1),
-                    posingMatrix[ijoint](j,2),
-                    posingMatrix[ijoint](j,3));
-            }}
-        printf("]\n");
-    }}
+    // for (int ijoint=0; ijoint < NJOINTS; ++ijoint) {{
+    //     printf("Matrix%d\n[\n", ijoint);
+    //         for (int j=0; j < 4; ++j) {{
+    //             printf("%0.2f,%0.2f,%0.2f,%0.2f,\n", 
+    //                 posingMatrix[ijoint](j,0),
+    //                 posingMatrix[ijoint](j,1),
+    //                 posingMatrix[ijoint](j,2),
+    //                 posingMatrix[ijoint](j,3));
+    //         }}
+    //     printf("]\n");
+    // }}
+
 
 
     // Pre-transform the vertices
@@ -433,19 +648,4 @@ __global__ void RasterKernel(GLVertex *vertices,
 }}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+*/
