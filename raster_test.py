@@ -21,7 +21,7 @@ def profileit(func):
 # Cache rules everything around me
 preferL1 = True
 if preferL1:
-    pycuda.autoinit.context.set_cache_config(func_cache.PREFER_L1)
+    pycuda.autoinit.context.set_cache_config(func_cache.PREFER_NONE)
 else:
     pycuda.autoinit.context.set_cache_config(func_cache.PREFER_SHARED)
 
@@ -47,20 +47,40 @@ m = MouseData(scenefile="mouse_mesh_low_poly3.npz")
 # Put the vertex data on the GPU
 resolutionX = np.float32(80.0)
 resolutionY = np.float32(80.0)
+numJoints = np.int32(m.num_joints)
 depthBuffer_cpu = np.zeros((resolutionX, resolutionY), dtype='float32')
 depthBuffer_gpu = gpuarray.to_gpu(depthBuffer_cpu)
 vert_gpu = gpuarray.to_gpu(m.vertices[:,:3].astype('float32'))
 vert_idx_gpu = gpuarray.to_gpu(m.vertex_idx.astype('uint16'))
+mouse_img_cpu = 10*np.random.random((int(resolutionY), int(resolutionX))).astype("float32")
+mouse_img_gpu = gpuarray.to_gpu(mouse_img_cpu)
+joint_weights_gpu = gpuarray.to_gpu(m.nonzero_joint_weights.astype('float32'))
+joint_indices_gpu = gpuarray.to_gpu(m.joint_idx.astype('uint16'))
+joint_world = m.jointWorldMatrices
+joint_world_gpu = gpuarray.to_gpu(joint_world)
+inverse_binding = m.inverseBindingMatrices
+inverse_binding_gpu = gpuarray.to_gpu(inverse_binding)
+
+# Make sure it's all UP THERE
 driver.Context.synchronize()
 
-for num_blocks in [10]: #[10]:
-    for num_threads in [128]: #[128]:        
-        for num_repeats in range(1,2):
+# For-loops for autotuning performance
+for num_blocks in [1]:
+    for num_threads in [1]:
+        for num_repeats in [1]:
             num_mice = num_blocks*num_threads*num_repeats
             raster_start = time.time()    
             for i in range(num_repeats):
+
+                # ACTUALLY CALL THE KERNEL
                 raster(vert_gpu, vert_idx_gpu, 
                     depthBuffer_gpu,
+                    mouse_img_gpu,
+                    joint_weights_gpu,
+                    joint_indices_gpu,
+                    joint_world_gpu,
+                    inverse_binding_gpu,
+                    numJoints,
                     resolutionX, resolutionY,
                     grid=(num_blocks,1,1),
                     block=(num_threads,1,1)
@@ -72,13 +92,10 @@ for num_blocks in [10]: #[10]:
 rot_verts = vert_gpu.get()
 depthBuffer = depthBuffer_gpu.get()
 close('all')
-figure()
+figure(figsize=(8,3))
 subplot(1,2,1)
 depthBuffer[depthBuffer == 0] = np.nan
 imshow(depthBuffer)
-colorbar()
 
 subplot(1,2,2)
-plot(rot_verts[:,0], rot_verts[:,2], 'o')
-plot(rot_verts[:,1], rot_verts[:,2], 'o')
-legend(["XY", "YZ"])
+imshow(mouse_img_gpu.get())

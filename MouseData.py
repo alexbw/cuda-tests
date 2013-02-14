@@ -34,3 +34,23 @@ class MouseData(object):
             jointChain.add_joint(J)
         self.skin = Joints.SkinnedMesh(self.vertices, self.joint_weights, jointChain)
         self.joint_positions = self.skin.jointChain.get_joint_world_positions()
+
+        # Calculate the indices of the non-zero joint weights
+        # In the process, if we have vertices that have less
+        # than the maximum number of joint influences,
+        # we'll have to add in dummy joints that have no influence.
+        # (this greatly simplifies things in the shader code)
+        self.joint_idx = np.zeros((self.num_vertices, self.num_joint_influences), dtype='int')
+        self.nonzero_joint_weights = np.zeros((self.num_vertices, self.num_joint_influences), dtype='float32')
+
+        for i in range(self.num_vertices):
+            idx = np.argwhere(self.skin.joint_weights[i,:] > 0).ravel()
+            if len(idx) != self.num_joint_influences:
+                num_to_add = self.num_joint_influences - len(idx)
+                joints_to_add = np.setdiff1d(range(self.num_bones), idx)[:num_to_add]
+                idx = np.hstack((idx, joints_to_add))
+            self.joint_idx[i] = idx
+            self.nonzero_joint_weights[i,:] = self.skin.joint_weights[i,self.joint_idx[i,:]]
+
+        self.inverseBindingMatrices = np.array([np.array(j.Bi.copy()) for j in self.skin.jointChain.joints]).astype('float32')
+        self.jointWorldMatrices = np.array([np.array(j.W.copy()) for j in self.skin.jointChain.joints]).astype('float32')

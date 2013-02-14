@@ -1,16 +1,17 @@
-#define EIGEN_NO_MALLOC
+// #define EIGEN_NO_MALLOC
 #define NDEBUG // VERY VERY IMPORTANT FOR PERFORMANCE!!
 
 #include <stdio.h>
 #include <algorithm>
 #include <Eigen/Dense>
 #include <math.h>
+#include <vector>
 using namespace Eigen;
 using namespace std;
 
-#define NITER 90
 #define NVERTS 484
 #define NFACES 940
+#define N_JOINT_INFLUENCES 4
 // ==============================
 // Helpers!
 // ==============================
@@ -40,6 +41,35 @@ struct GLTriangle
 	GLVertex b;
 	GLVertex c;
 }};
+
+struct JointInfluences4Joints
+{{
+    float w0;
+    float w1;
+    float w2;
+    float w3;
+}};
+
+struct JointIndices4Joints
+{{
+    unsigned short i0;
+    unsigned short i1;
+    unsigned short i2;
+    unsigned short i3;
+}};
+
+struct Plain4x4Matrix_f
+{{
+    float matrix[16];
+}};
+
+struct Plain4x4Matrix_us
+{{
+    unsigned short matrix[16];
+}};
+
+
+
 
 __device__ inline float deg2rad(float deg)
 {{
@@ -247,51 +277,18 @@ __device__ inline Matrix4f scaleMatrix(float scalex, float scaley, float scalez)
 	return t;
 }}
 
-__device__ Matrix4f calcLocalRotation(float rotx, float roty, float rotz,
-                                      float transx, float transy, float transz) {{
-
-
-    rotx = deg2rad(rotx);
-    roty = deg2rad(roty);
-    rotz = deg2rad(rotz);
-
-    float cx = cos(rotx);
-    float sx = sin(rotx);
-    float cy = cos(roty);
-    float sy = sin(roty);
-    float cz = cos(rotz);
-    float sz = sin(rotz);
-
-    Matrix4f Rx = Matrix4f::Identity(); 
-    Matrix4f Ry = Matrix4f::Identity(); 
-    Matrix4f Rz = Matrix4f::Identity();
-    Rx = Rx*cx;
-    Ry = Ry*cy;
-    Rz = Rz*cz;
-
-    Rx(0,0) += 1.0 - cx;
-    Ry(1,1) += 1.0 - cy;
-    Rz(2,2) += 1.0 - cz;
-
-    Rx(1,2) += -sx;
-    Rx(2,1) += sx;
-
-    Ry(0,2) += sy;
-    Ry(2,0) += -sy;
-
-    Rz(0,1) += -sz;
-    Rz(1,0) += sz;
-
-    Matrix4f Tout = Rx*Ry*Rz;
-
-    Tout(0,3) = transx;
-    Tout(1,3) = transy;
-    Tout(2,3) = transz;
-
-    return Tout;
+__device__ inline Matrix4f EigenMatFromMemory(float *mat4inMemory) 
+{{
+    Matrix4f m;
+    m <<
+    mat4inMemory[0], mat4inMemory[1], mat4inMemory[2], mat4inMemory[3], 
+    mat4inMemory[4], mat4inMemory[5], mat4inMemory[6], mat4inMemory[7], 
+    mat4inMemory[8], mat4inMemory[9], mat4inMemory[10], mat4inMemory[11], 
+    mat4inMemory[12], mat4inMemory[13], mat4inMemory[14], mat4inMemory[15];
+    return m;
 }}
 
-
+// __device__ inline vector<FK(GLVertex *rotations, )
 
 // ==============================
 // Here's the actual work here!
@@ -302,39 +299,92 @@ extern "C"
 __global__ void RasterKernel(GLVertex *vertices, 
 							 GLTriangleFace *triangles,
 							 float *depthBuffer,
+                             float *mouseImage,
+                             JointInfluences4Joints *jointWeights,
+                             JointIndices4Joints *jointIndices,
+                             Plain4x4Matrix_f *jointWorldMatrix,
+                             Plain4x4Matrix_f *inverseBindingMatrix,
+                             int numJoints,
 							 float resolutionX,
 							 float resolutionY )
 {{
-    
-
-    // Speed challenge
-    /*
-    Matrix4f mat1 = Matrix4f::Identity();
-    mat1 << 0.8413,  0.0004,  0.471 ,  0.757 ,  0.85  ,  0.4208,  0.72  ,
-        0.0429,  0.1005,  0.8779,  0.9141,  0.3959,  0.7905,  0.7925,
-        0.8939,  0.6818;
-    Matrix4f mat2 = Matrix4f::Identity();
-    mat2 << 0.8413,  0.0004,  0.471 ,  0.757 ,  0.85  ,  0.4208,  0.72  ,
-        0.0429,  0.1005,  0.8779,  0.9141,  0.3959,  0.7905,  0.7925,
-        0.8939,  0.6818;
-    Matrix4f mat3 = Matrix4f::Identity();
-    mat3 << 0.8413,  0.0004,  0.471 ,  0.757 ,  0.85  ,  0.4208,  0.72  ,
-        0.0429,  0.1005,  0.8779,  0.9141,  0.3959,  0.7905,  0.7925,
-        0.8939,  0.6818;
-    #pragma unroll
-    for (int i=0; i<NITER;++i) {{
-        mat1 = mat2.inverse();
-        mat2 = mat1*mat3;
-    }}
-    */
-
-    Matrix3f swap;
-    swap << 1,0,0, \
-            0,0,1, \
-            0,1,0;
 
 	Matrix3f transform = scaleMatrix3D(30.0, 30.0, 30.0);
 	Vector3f transvec(40.5, 40.5, 0.);
+
+    __shared__ float thisMouse[6400];
+    for (int i=0; i<6400;++i) {{
+        thisMouse[i] = mouseImage[i];
+    }}
+
+    float synthMouse[6400];
+    for (int i=0; i<6400;++i) {{
+        synthMouse[i] = 0.0f;
+    }}
+
+
+    // Solve some FK, just a lil bit.
+    Matrix4f posingMatrix[10];
+    for (int i=0; i < numJoints; ++i) {{
+        Matrix4f thisJointWorld = EigenMatFromMemory(jointWorldMatrix[i].matrix);
+        Matrix4f thisInverseBinding = EigenMatFromMemory(inverseBindingMatrix[i].matrix);
+        posingMatrix[i] = thisJointWorld*thisInverseBinding;
+    }}
+
+    for (int ijoint=0; ijoint < numJoints; ++ijoint) {{
+        printf("Matrix%d\n[\n", ijoint);
+            for (int j=0; j < 4; ++j) {{
+                printf("%0.2f,%0.2f,%0.2f,%0.2f,\n", 
+                    posingMatrix[ijoint](j,0),
+                    posingMatrix[ijoint](j,1),
+                    posingMatrix[ijoint](j,2),
+                    posingMatrix[ijoint](j,3));
+            }}
+        printf("]\n");
+    }}
+
+
+    // Pre-transform the vertices
+    for (int i=0; i < NVERTS; ++i) {{
+        // Grab from memory
+        Vector3f v(vertices[i].x, vertices[i].z, vertices[i].y);
+
+        // Transform to screen space
+        v = transform*v;
+        v = v+transvec;
+
+        Vector4f v4;
+        v4(0) = v(0); v4(1) = v(1); v4(2) = v(2); v4(3) = 1.0;
+
+        // Skin
+        int indices[N_JOINT_INFLUENCES];
+        indices[0] = jointIndices[i].i0;
+        indices[1] = jointIndices[i].i1;
+        indices[2] = jointIndices[i].i2;
+        indices[3] = jointIndices[i].i3;
+        float weights[N_JOINT_INFLUENCES];
+        weights[0] = jointWeights[i].w0;
+        weights[1] = jointWeights[i].w1;
+        weights[2] = jointWeights[i].w2;
+        weights[3] = jointWeights[i].w3;
+
+        Vector4f skinnedVert;
+        skinnedVert(0) = 0.0; skinnedVert(1) = 0.0; 
+        skinnedVert(2) = 0.0; skinnedVert(3) = 0.0; 
+
+        for (int j=0; j < N_JOINT_INFLUENCES; ++j) {{
+            int idx = indices[j];
+            float weight = weights[j];
+            Matrix4f thisMat = posingMatrix[idx];
+            Vector4f thisVec = weight*thisMat*v4;
+            skinnedVert = skinnedVert+thisVec;
+
+        }}
+
+        vertices[i].x = skinnedVert(0);
+        vertices[i].y = skinnedVert(1);
+        vertices[i].z = skinnedVert(2);
+    }}
 
 	// For each triangle, rasterize the crap out of it
 	// (for now, don't care about overlaps)
@@ -344,17 +394,12 @@ __global__ void RasterKernel(GLVertex *vertices,
 		unsigned short i1 = triangles[iface].v1;
 		unsigned short i2 = triangles[iface].v2;
 
-		Vector3f a(vertices[i0].x, vertices[i0].z, vertices[i0].y);
-		Vector3f b(vertices[i1].x, vertices[i1].z, vertices[i1].y);;
-		Vector3f c(vertices[i2].x, vertices[i2].z, vertices[i2].y);;
+        // NOTE THE SWAP MANG
+        // MAYA's coordinates are left-handed, which I liketh not. 
+		Vector3f a(vertices[i0].x, vertices[i0].y, vertices[i0].z);
+		Vector3f b(vertices[i1].x, vertices[i1].y, vertices[i1].z);;
+		Vector3f c(vertices[i2].x, vertices[i2].y, vertices[i2].z);;
 		
-		a = transform*a;
-		a = a+transvec;
-        b = transform*b;
-		b = b+transvec;
-        c = transform*c;
-        c = c+transvec;
-
 		Vector3f ll = getLowerLeftOfTriangle(a,b,c);
 		Vector3f ur = getUpperRightOfTriangle(a,b,c);
 
@@ -367,28 +412,23 @@ __global__ void RasterKernel(GLVertex *vertices,
 				if (inTriangle) {{
 					float interpZ = getZAtBarycentricCoordinate(baryCoord,a,b,c);
 					long int idx = i*resolutionX + j;
-                    float oldval = depthBuffer[idx];
-                    if (oldval <= interpZ)
-                       atomicExch(&depthBuffer[idx], interpZ);
-					   // depthBuffer[idx] = interpZ;
+                    float oldval = synthMouse[idx];
+                    float compareval = thisMouse[idx];
+                    if (oldval <= interpZ) {{
+                        synthMouse[idx] = interpZ;
+                       // atomicExch(&synthMouse[idx], interpZ-compareval);
+                    }}
 				}}
 				
 			}}
 		}}
+
+        for (int i=0; i < resolutionX*resolutionY; ++i) {{
+            depthBuffer[i] = synthMouse[i];
+            mouseImage[i] = synthMouse[i] - thisMouse[i];
+        }}
+
 	}}
-
-    Matrix4f tr = rotateMatrix(360, 360, 360);
-    for (int i=0; i < NVERTS; ++i) {{
-        GLVertex v = vertices[i];
-        Vector3f a(v.x,v.z,v.y);
-        a = transform*a;
-        vertices[i].x = a(0);
-        vertices[i].y = a(1);
-        vertices[i].z = a(2);
-
-    }}
-
-
 
 }}
 
