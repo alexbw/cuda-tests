@@ -40,6 +40,9 @@ for i in range(1,numGPUs):
     devices.append(dev)
     contexts.append(ctx)
 
+# Set the first context as active
+contexts[0].push()
+
 # First, grab the mouse, and all its wonderful parameters
 # Grab a mouse and its vertices
 m = MouseData(scenefile="mouse_mesh_low_poly3.npz")
@@ -287,8 +290,7 @@ if testSkinRasterAndLikelihood:
                 inverseBindingMatrix_gpu,
                 jointTransforms_gpu,
                 grid=(numBlocksFK,1,1),
-                block=(numThreadsFK,1,1),
-                stream=stream)
+                block=(numThreadsFK,1,1))
 
         #skin
         skinning(jointTransforms_gpu,
@@ -297,8 +299,7 @@ if testSkinRasterAndLikelihood:
                 jointWeightIndices_gpu,
                 skinnedVertices_gpu,
                 grid=(numBlocksSK,1,1),
-                block=(numThreadsSK,1,1),
-                stream=stream)
+                block=(numThreadsSK,1,1))
 
         #raster
         raster( skinnedVertices_gpu, 
@@ -306,18 +307,16 @@ if testSkinRasterAndLikelihood:
                 mouseVertexIdx_gpu,
                 synthPixels_gpu,
                 grid=(numBlocksRS,1,1),
-                block=(numThreadsRS,1,1),
-                stream=stream)
+                block=(numThreadsRS,1,1))
 
         #likelihood
         likelihood(synthPixels_gpu,
                 realPixels_gpu,
                 likelihoods_gpu,
                 grid=(numBlocksLK,1,1),
-                block=(numThreadsLK,1,1),
-                stream=stream)
+                block=(numThreadsLK,1,1))
 
-        stream.synchronize()
+        contexts[0].synchronize()
         full_time = time.time() - start
         print "Skin,Raster,Likelihood {micesec} mice/sec".format(micesec=numMice/full_time)
 
@@ -360,10 +359,11 @@ del jointTranslations_gpu
 
 
 
+for c in contexts:
+    c.pop()
 
 
-
-
+driver.Context.pop()
 
 
 
