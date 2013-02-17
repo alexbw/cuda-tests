@@ -15,13 +15,30 @@ import numpy as np
 import time
 from pycuda import driver, compiler, gpuarray, tools
 from pycuda.compiler import SourceModule
-import pycuda.autoinit
 from pycuda.driver import func_cache
 from MouseData import MouseData
 from matplotlib.pyplot import *
 from itertools import product
 
-stream = driver.Stream()
+import pycuda.autoinit
+# Grab a context for each GPU
+dev = driver.Device(0)
+ctx = dev.make_context()
+dev.count()
+devices = []
+contexts = []
+devices.append(dev)
+contexts.append(ctx)
+
+# Get the number of GPUs in this computer
+numGPUs = driver.Device(0).count()
+
+# Grab a context for each GPU
+for i in range(1,numGPUs):
+    dev = driver.Device(i)
+    ctx = dev.make_context()
+    devices.append(dev)
+    contexts.append(ctx)
 
 # First, grab the mouse, and all its wonderful parameters
 # Grab a mouse and its vertices
@@ -39,9 +56,9 @@ numJoints = m.num_joints
 # Cache rules everything around me
 preferL1 = False
 if preferL1:
-    pycuda.autoinit.context.set_cache_config(func_cache.PREFER_L1)
+    ctx.set_cache_config(func_cache.PREFER_L1)
 else:
-    pycuda.autoinit.context.set_cache_config(func_cache.PREFER_SHARED)
+    ctx.set_cache_config(func_cache.PREFER_SHARED)
 
 
 # Go ahead and grab the kernel code
@@ -250,7 +267,6 @@ if testSkinning:
 
 testSkinRasterAndLikelihood = True
 if testSkinRasterAndLikelihood:
-    for what in range(1,2):
     # for (numBlocks,numThreads) in product(range(150,300,10), range(9,13)):
         
         numBlocksFK,numThreadsFK = 10,512
