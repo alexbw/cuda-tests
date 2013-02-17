@@ -10,7 +10,7 @@
 # Likelihood calculation
 # FK
 # Skinning
-
+import os
 import numpy as np
 import time
 from pycuda import driver, compiler, gpuarray, tools
@@ -56,8 +56,10 @@ kernel_code = kernel_code_template.format(resx=resolutionX,
 
 
 # compile the kernel code 
+basePath = os.path.split(os.path.realpath(__file__))[0]
+includePath = os.path.join(basePath, "include")
 mod = compiler.SourceModule(kernel_code, options=\
-                        ['-I/home/dattalab/Code/cuda-tests/include', \
+                        ['-I%s' % includePath, \
                         '--compiler-options', '-w',
                         '--optimize', '3', \
                         ], no_extern_c=True)
