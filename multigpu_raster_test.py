@@ -41,7 +41,6 @@ for i in range(1,numGPUs):
     contexts.append(ctx)
 
 # Set the first context as active
-contexts[0].push()
 
 # First, grab the mouse, and all its wonderful parameters
 # Grab a mouse and its vertices
@@ -59,10 +58,12 @@ numJoints = m.num_joints
 # Cache rules everything around me
 preferL1 = False
 for ctx in contexts:
+    ctx.push()
     if preferL1:
         ctx.set_cache_config(func_cache.PREFER_L1)
     else:
         ctx.set_cache_config(func_cache.PREFER_SHARED)
+    ctx.pop()
 
 
 # Go ahead and grab the kernel code
@@ -100,7 +101,6 @@ jointRotations_gpu = []
 jointTranslations_gpu = []
 
 for ctx in contexts:
-    print "HEYHEYHEYEYEYYEYEYYEY"
     ctx.push()
     mod = compiler.SourceModule(kernel_code, options=\
                             ['-I%s' % includePath, \
@@ -269,10 +269,9 @@ for i in range(len(contexts)):
 
 
 for c in contexts:
-    c.pop()
+    driver.Context.pop() # don't know why this is needed, but it seems to be
 
 
-driver.Context.pop()
 
 
 
