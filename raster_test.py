@@ -201,7 +201,7 @@ if testRaster:
             for i in range(numLikelihoodPasses):
                 likelihood(synthPixels_gpu,
                         realPixels_gpu,
-                        likelihoods_gpu,
+                        likelihoods_gpu,hon
                         grid=(numBlocksLikelihood,1,1),
                         block=(numThreadsLikelihood,1,1))
 
