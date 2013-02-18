@@ -1,6 +1,5 @@
 # TODO:
 # - Better parallel reduction (can work across mice, even)
-# - Free memory after use
 # - Change likelihoods from numMicePerPass to some multiple thereof,
 #       and increment the write location to do multiple passes per frame
 # - Pack vertices together as triangles to coalesce transfers
@@ -173,12 +172,11 @@ for ctx in contexts:
 # for (numBlocks,numThreads) in product(range(150,300,10), range(9,13)):
 for i in range(1,2):
     
-    numBlocksFK,numThreadsFK = 10,512
+    numBlocksFK,numThreadsFK = 10,256
     numMiceFK = numBlocksFK*numThreadsFK
     numBlocksRS,numThreadsRS = 10,256
     numMiceRS = numBlocksRS*numThreadsRS
-    # numBlocksSK,numThreadsSK = 240,10
-    numBlocksSK,numThreadsSK = 1,1
+    numBlocksSK,numThreadsSK = 10,256
     numMiceSK = numBlocksSK*numThreadsSK
     numBlocksLK,numThreadsLK = 10,256
     numMiceLK = numBlocksLK*numThreadsLK
