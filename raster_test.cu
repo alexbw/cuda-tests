@@ -354,7 +354,7 @@ __global__ void rasterizeSerial(GLVertex *skinnedVertices,
         v = scale_matrix*v;
         v = v+translate_vector;
 
-        skinnedVertices[i].x = v(0);
+
         skinnedVertices[i].y = v(1);
         skinnedVertices[i].z = v(2);
     }}
@@ -453,23 +453,37 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
         theseJoints[i] = Matrix4f(jointTransforms[i].matrix);
     }}
 
+    // Precalculate some scaling matrices
+    Matrix4f scale_matrix = scaleMatrix(RESOLUTION_X*0.3, RESOLUTION_Y*0.3, 24.0);
+    Vector4f translate_vector(RESOLUTION_X/2, RESOLUTION_Y/2, 0., 0.0);
+
     for (int i=0; i < NVERTS; ++i) {{
         // Grab the unposed vertex
-        Vector4f vertex(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
+        Vector4f vertex(vertices[i].x, vertices[i].z, vertices[i].y, 1.0);
         // Make our destination vertex
         Vector4f skinnedVertex(0., 0., 0., 0.);
 
         // For each influence on the vertex
-        for (int ijoint; ijoint < N_JOINT_INFLUENCES; ++ijoint) {{
+        float totalWeight = 0.0f;
+         for (int ijoint; ijoint < N_JOINT_INFLUENCES; ++ijoint) {{
             // Figure out which joint is influencing the vertex
             int index = jointWeightIndices[i].idx[ijoint];
 
-            // And find the weight with which it influences the vertex
+           // And find the weight with which it influences the vertex
             float weight = jointWeights[i].w[ijoint];
+            if (i >= 400) {{
+             printf("Thisweight: %f ", weight);
+            }}
+            totalWeight += weight;
+           // Add this joint's contribution to the vertex
+            // skinnedVertex += weight*theseJoints[index]*vertex;
+         }}
 
-            // Add this joint's contribution to the vertex
-            skinnedVertex += weight*theseJoints[index]*vertex;
-        }}
+//         printf("Total weight: %f\n", totalWeight);
+        // After we've computed the weighted skin position,
+        // then we'll scale and translate it into a proper skin space
+        skinnedVertex = scale_matrix*skinnedVertex;
+        skinnedVertex = skinnedVertex+translate_vector;
 
         skinnedVertices[i].x = skinnedVertex(0);
         skinnedVertices[i].y = skinnedVertex(1);

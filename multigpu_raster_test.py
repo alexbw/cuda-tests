@@ -70,7 +70,6 @@ for ctx in contexts:
 with open("raster_test.cu") as kernel_file:
     kernel_code_template = kernel_file.read()
 
-
 # In this kernel, currently no formatting
 kernel_code = kernel_code_template.format(resx=resolutionX, 
                                         resy=resolutionY, 
@@ -178,7 +177,8 @@ for i in range(1,2):
     numMiceFK = numBlocksFK*numThreadsFK
     numBlocksRS,numThreadsRS = 10,256
     numMiceRS = numBlocksRS*numThreadsRS
-    numBlocksSK,numThreadsSK = 240,10
+    # numBlocksSK,numThreadsSK = 240,10
+    numBlocksSK,numThreadsSK = 1,1
     numMiceSK = numBlocksSK*numThreadsSK
     numBlocksLK,numThreadsLK = 10,256
     numMiceLK = numBlocksLK*numThreadsLK
@@ -196,6 +196,7 @@ for i in range(1,2):
                 block=(numThreadsFK,1,1))
 
         #skin
+        # PLEASE ADD THE ABILITY TO ADD SCALING
         skinning[i](jointTransforms_gpu[i],
                 mouseVertices_gpu[i],
                 jointWeights_gpu[i],
