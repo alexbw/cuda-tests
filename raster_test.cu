@@ -434,6 +434,7 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
                                 JointWeightIndices *jointWeightIndices,
                                 GLVertex *skinnedVertices)
 {{
+
     const uint bx = blockIdx.x;
     const uint bw = blockDim.x;
     const uint tx = threadIdx.x;
@@ -463,23 +464,13 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
         // Make our destination vertex
         Vector4f skinnedVertex(0., 0., 0., 0.);
 
-        // For each influence on the vertex
-        float totalWeight = 0.0f;
-         for (int ijoint; ijoint < N_JOINT_INFLUENCES; ++ijoint) {{
-            // Figure out which joint is influencing the vertex
+        float tmpWeight = 1.0 / (float)(N_JOINT_INFLUENCES);
+        for (int ijoint=0; ijoint<N_JOINT_INFLUENCES; ++ijoint) {{
             int index = jointWeightIndices[i].idx[ijoint];
-
-           // And find the weight with which it influences the vertex
             float weight = jointWeights[i].w[ijoint];
-            if (i >= 400) {{
-             printf("Thisweight: %f ", weight);
-            }}
-            totalWeight += weight;
-           // Add this joint's contribution to the vertex
-            // skinnedVertex += weight*theseJoints[index]*vertex;
-         }}
-
-//         printf("Total weight: %f\n", totalWeight);
+            skinnedVertex += weight*theseJoints[index]*vertex;
+        }}
+        
         // After we've computed the weighted skin position,
         // then we'll scale and translate it into a proper skin space
         skinnedVertex = scale_matrix*skinnedVertex;
