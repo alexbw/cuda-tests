@@ -14,7 +14,9 @@ def inv(E):
 
 out = np.zeros((5,4,4))
 out[:,-1,-1] = 1.
-def Es(angles):
+def Es(angles, usesDegrees=True):
+    if usesDegrees:
+        angles = np.deg2rad(angles)
     cosines = np.cos(angles)
     sines = np.sin(angles)
     for idx in range(5):
@@ -46,7 +48,7 @@ def get_Ms(angles):
 if __name__ == "__main__":
     # unposed stuff means M's are identities
     print "The following matrices should be all identity matrices (within machine eps)"
-    M = get_Ms(np.deg2rad(m.joint_rotations))
+    M = get_Ms(m.joint_rotations)
     for iM in M:
         print iM
         assert np.allclose(iM, np.eye(4)), "Must be close to identity"
@@ -68,7 +70,7 @@ if __name__ == "__main__":
 
     new_rotations = m.joint_rotations.copy()
     new_rotations[2,1] += 30.0
-    M2 = get_Ms(np.deg2rad(new_rotations))
+    M2 = get_Ms(new_rotations)
     vv2 = pose_vertices(m, M2)
 
     # Plot the mouse from the top-down
@@ -76,7 +78,10 @@ if __name__ == "__main__":
     plt.subplot(1,2,1);
     plt.plot(vv[:,2], vv[:,0], 'o');
     plt.title("Unposed mouse")
+    plt.ylim(-1,1)
 
-    subplot(1,2,2);
-    plot(vv2[:,2], vv2[:,0], 'o')
-    title("Posed mouse, third joint 30deg right")
+
+    plt.subplot(1,2,2);
+    plt.plot(vv2[:,2], vv2[:,0], 'o')
+    plt.title("Posed mouse, third joint 30deg left")
+    plt.ylim(-1,1)
