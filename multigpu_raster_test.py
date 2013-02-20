@@ -49,9 +49,9 @@ for i in range(1,numGPUs):
 m = MouseData(scenefile="mouse_mesh_low_poly3.npz")
 
 # SET TUNABLE PARAMETERS
-numBlocks = 100
-numThreads = 512
-numMicePerPass = numBlocks*numThreads
+maxNumBlocks = 100
+maxNumThreads = 512
+numMicePerPass = maxNumBlocks*maxNumThreads
 resolutionX = np.int32(64)
 resolutionY = np.int32(64)
 numJoints = m.num_joints
@@ -118,33 +118,33 @@ for ctx in contexts:
     # Synthetic pixels
     synthPixels_cpu = np.zeros((resolutionX, resolutionY), dtype='float32')
     synthPixels_cpu = np.tile(synthPixels_cpu, (numMicePerPass,1))
-    synthPixels_gpu.append(gpuarray.to_gpu(synthPixels_cpu))
+    synthPixels_gpu.append(gpuarray.to_gpu_async(synthPixels_cpu))
 
     # Real mouse pixels
     realPixels_cpu = np.zeros((int(resolutionX), int(resolutionY)), dtype='float32')
     realPixels_cpu += 10*np.random.random(realPixels_cpu.shape) # testing only
-    realPixels_gpu.append(gpuarray.to_gpu(realPixels_cpu))
+    realPixels_gpu.append(gpuarray.to_gpu_async(realPixels_cpu))
 
     # Mouse vertices
     mouseVertices_cpu = m.vertices[:,:3].astype('float32')
-    mouseVertices_gpu.append(gpuarray.to_gpu(mouseVertices_cpu))
+    mouseVertices_gpu.append(gpuarray.to_gpu_async(mouseVertices_cpu))
 
     # Triangle face indices
     mouseVertexIdx_cpu = m.vertex_idx.astype('uint16')
-    mouseVertexIdx_gpu.append(gpuarray.to_gpu(mouseVertexIdx_cpu))
+    mouseVertexIdx_gpu.append(gpuarray.to_gpu_async(mouseVertexIdx_cpu))
 
     # Skinned vertices
     skinnedVertices_cpu = mouseVertices_cpu.copy()
     skinnedVertices_cpu = np.tile(skinnedVertices_cpu, (numMicePerPass,1))
-    skinnedVertices_gpu.append(gpuarray.to_gpu(skinnedVertices_cpu))
+    skinnedVertices_gpu.append(gpuarray.to_gpu_async(skinnedVertices_cpu))
 
     # Joint weights
     jointWeights_cpu = m.nonzero_joint_weights.astype('float32')
-    jointWeights_gpu.append(gpuarray.to_gpu(jointWeights_cpu))
+    jointWeights_gpu.append(gpuarray.to_gpu_async(jointWeights_cpu))
 
     # Joint weight indices
     jointWeightIndices_cpu = m.joint_idx.astype('uint16')
-    jointWeightIndices_gpu.append(gpuarray.to_gpu(jointWeightIndices_cpu))
+    jointWeightIndices_gpu.append(gpuarray.to_gpu_async(jointWeightIndices_cpu))
 
     # Okay, for joint transforms,
     # -- [x,y,z]
@@ -155,15 +155,15 @@ for ctx in contexts:
     # Joint transforms
     jointTransforms_cpu = np.eye(4, dtype='float32') # m.jointWorldMatrices
     jointTransforms_cpu = np.tile(jointTransforms_cpu, (numMicePerPass*numJoints,1))
-    jointTransforms_gpu.append(gpuarray.to_gpu(jointTransforms_cpu))
+    jointTransforms_gpu.append(gpuarray.to_gpu_async(jointTransforms_cpu))
 
     # Inverse binding matrices
     inverseBindingMatrix_cpu = m.inverseBindingMatrices
-    inverseBindingMatrix_gpu.append(gpuarray.to_gpu(inverseBindingMatrix_cpu))
+    inverseBindingMatrix_gpu.append(gpuarray.to_gpu_async(inverseBindingMatrix_cpu))
 
     # Likelihoods
     likelihoods_cpu = np.zeros((numMicePerPass,), dtype='float32')
-    likelihoods_gpu.append(gpuarray.to_gpu(likelihoods_cpu))
+    likelihoods_gpu.append(gpuarray.to_gpu_async(likelihoods_cpu))
 
     # Joint rotations
     jointRotations_cpu = m.joint_rotations.astype('float32')
@@ -171,15 +171,15 @@ for ctx in contexts:
         jointRotations_cpu[2,0] += -15
         jointRotations_cpu[3,0] += -15
     jointRotations_cpu = np.tile(jointRotations_cpu, (numMicePerPass,1))
-    jointRotations_gpu.append(gpuarray.to_gpu(jointRotations_cpu))
+    jointRotations_gpu.append(gpuarray.to_gpu_async(jointRotations_cpu))
 
     # Base joint rotations
     baseJointRotations_cpu = m.joint_rotations.astype('float32')
-    baseJointRotations_gpu.append(gpuarray.to_gpu(baseJointRotations_cpu))
+    baseJointRotations_gpu.append(gpuarray.to_gpu_async(baseJointRotations_cpu))
 
     # Joint translations (we never propose over these)
     jointTranslations_cpu = m.joint_translations.astype('float32')
-    jointTranslations_gpu.append(gpuarray.to_gpu(jointTranslations_cpu))
+    jointTranslations_gpu.append(gpuarray.to_gpu_async(jointTranslations_cpu))
 
     # Make sure it's all UP THERE
     ctx.synchronize()
