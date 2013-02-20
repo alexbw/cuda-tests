@@ -187,7 +187,7 @@ for ctx in contexts:
 
 
 # numBlocksFK,numThreadsFK = 10,256
-numBlocksFK,numThreadsFK = 1,1
+numBlocksFK,numThreadsFK = 10,256
 numMiceFK = numBlocksFK*numThreadsFK
 numBlocksRS,numThreadsRS = 10,256
 numMiceRS = numBlocksRS*numThreadsRS
