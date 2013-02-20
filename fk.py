@@ -3,8 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 from MouseData import MouseData
-m = MouseData('mouse_mesh_low_poly3.npz')
-translations = m.joint_translations
 
 def inv(E):
     out = E.copy()
@@ -12,32 +10,41 @@ def inv(E):
     out[:-1,-1]  = E[:-1,:-1].T.dot(-E[:-1,-1])
     return out
 
-out = np.zeros((5,4,4))
-out[:,-1,-1] = 1.
-def Es(angles, usesDegrees=True):
+def Es(angles, translations, usesDegrees=True):
     if usesDegrees:
         angles = np.deg2rad(angles)
     cosines = np.cos(angles)
     sines = np.sin(angles)
+    out = np.zeros((5,4,4))
+    out[:,-1,-1] = 1.
     for idx in range(5):
         cx, cy, cz = cosines[idx]
         sx, sy, sz = sines[idx]
-        out[idx,:-1,:] = np.array(( (cy*cz,          -cy*sz,         -sy   , translations[idx,0]),
-                                    (cx*sz-sx*sy*cz, cx*cz+sx*sy*sz, -sx*cy, translations[idx,1]),
-                                    (sx*sz+sy*cx*cz, sx*cz-cx*sy*sz,  cx*cy, translations[idx,2]), ))
+        out[idx,:-1,:] = np.array(( (cy*cz,          cy*sz,         -sy   , translations[idx,0]),
+                                    (-cx*sz+sx*sy*cz, cx*cz+sx*sy*sz, sx*cy, translations[idx,1]),
+                                    (sx*sz+sy*cx*cz, -sx*cz+cx*sy*sz,  cx*cy, translations[idx,2]), ))
+        # out[idx,:-1,:] = np.array(( (cy*cz,          cy*sz,         sy   , translations[idx,0]),
+        #                             (-cx*sz-sx*sy*cz, cx*cz-sx*sy*sz, sx*cy, translations[idx,1]),
+        #                             (sx*sz-sy*cx*cz, -sx*cz-cx*sy*sz,  cx*cy, translations[idx,2]), ))
+
+
     return out
 
 
-fixed_Es = Es(m.joint_rotations)
-fixed_Ms = np.empty((5,4,4))
-fixed_Ms[0] = inv(fixed_Es[0])
-for idx in range(1,5):
-    # cumulative right-product
-    fixed_Ms[idx] = fixed_Ms[idx-1].dot(inv(fixed_Es[idx]))
+def get_fixed_Ms(base_angles, translations):
+    fixed_Es = Es(base_angles, translations)
+    fixed_Ms = np.empty((5,4,4))
+    fixed_Ms[0] = inv(fixed_Es[0])
+    for idx in range(1,5):
+        # cumulative right-product
+        fixed_Ms[idx] = fixed_Ms[idx-1].dot(inv(fixed_Es[idx]))
+    return fixed_Ms
 
-changed_Ms = np.empty((5,4,4))
-def get_Ms(angles):
-    changed_Es = Es(angles)
+
+def get_Ms(base_angles, angles, translations):
+    fixed_Ms = get_fixed_Ms(base_angles, translations)
+    changed_Ms = np.empty((5,4,4))
+    changed_Es = Es(angles, translations)
     changed_Ms[0] = changed_Es[0]
     for idx in range(1,5):
         # cumulative left-product
@@ -48,7 +55,10 @@ def get_Ms(angles):
 if __name__ == "__main__":
     # unposed stuff means M's are identities
     print "The following matrices should be all identity matrices (within machine eps)"
-    M = get_Ms(m.joint_rotations)
+    m = MouseData('mouse_mesh_low_poly3.npz')
+    rotations = m.joint_rotations
+    translations = m.joint_translations
+    M = get_Ms(rotations, translations)
     for iM in M:
         print iM
         assert np.allclose(iM, np.eye(4)), "Must be close to identity"
