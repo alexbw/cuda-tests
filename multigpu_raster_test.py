@@ -100,6 +100,7 @@ jointTransforms_gpu = []
 inverseBindingMatrix_gpu = []
 likelihoods_gpu = []
 jointRotations_gpu = []
+baseJointRotations_gpu = []
 jointTranslations_gpu = []
 
 for ctx in contexts:
@@ -174,12 +175,15 @@ for ctx in contexts:
 
     # Joint rotations
     jointRotations_cpu = m.joint_rotations.astype('float32')
-    jointRotations_cpu = jointRotations_cpu[:,:]
     if shouldWeMessWithSomeRotations:
         jointRotations_cpu[2,0] += -15
         jointRotations_cpu[3,0] += -15
     jointRotations_cpu = np.tile(jointRotations_cpu, (numMicePerPass,1))
     jointRotations_gpu.append(gpuarray.to_gpu(jointRotations_cpu))
+
+    # Base joint rotations
+    baseJointRotations_cpu = m.joint_rotations.astype('float32')
+    baseJointRotations_gpu.append(gpuarray.to_gpu(baseJointRotations_cpu))
 
     # Joint translations (we never propose over these)
     jointTranslations_cpu = m.joint_translations.astype('float32')
@@ -206,7 +210,7 @@ for i,ctx in enumerate(contexts):
     ctx.push()
     #fk (currently broken, but does the right number of operations)
 
-    fk[i](jointRotations_gpu[i],
+    fk[i](baseJointRotations_gpu[i],
             jointRotations_gpu[i],
             jointTranslations_gpu[i],
             jointTransforms_gpu[i],
