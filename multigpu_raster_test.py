@@ -186,13 +186,13 @@ for ctx in contexts:
     ctx.pop()
 
 
-numBlocksFK,numThreadsFK = 10,256
+numBlocksFK,numThreadsFK = 30,256
 numMiceFK = numBlocksFK*numThreadsFK
-numBlocksRS,numThreadsRS = 10,256
+numBlocksRS,numThreadsRS = 30,256
 numMiceRS = numBlocksRS*numThreadsRS
-numBlocksSK,numThreadsSK = 10,256
+numBlocksSK,numThreadsSK = 30,256
 numMiceSK = numBlocksSK*numThreadsSK
-numBlocksLK,numThreadsLK = 10,256
+numBlocksLK,numThreadsLK = 30,256
 numMiceLK = numBlocksLK*numThreadsLK
 numMice = min([numMiceFK, numMiceRS, numMiceSK, numMiceLK])
 
