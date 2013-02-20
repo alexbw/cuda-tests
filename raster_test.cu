@@ -565,9 +565,9 @@ __global__ void FKSerial(GLVertex *baseRotations,
     // ========================================
     changedM[0] = Matrix4f::Identity(); // force initialization
     changedM[0] = changedE[0];
-    for (int i=0; i < NJOINTS; ++i) {{
+    for (int i=1; i < NJOINTS; ++i) {{
         changedM[i] = Matrix4f::Identity();
-        // changedM[i] = changedE[i]*changedM[i-1];
+        changedM[i] = changedE[i]*changedM[i-1];
     }}
     printf("\n\nChanged M's...\n");
     for (int i=0; i < NJOINTS; ++i) {{
