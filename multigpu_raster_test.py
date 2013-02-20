@@ -78,16 +78,13 @@ kernel_code = kernel_code_template.format(resx=resolutionX,
                                         njoints=numJoints)
 
 
-# compile the kernel code 
-basePath = os.path.split(os.path.realpath(__file__))[0]
-includePath = os.path.join(basePath, "include")
-
-# Upload data to the GPUs
+# Kernels, for each context
 raster = []
 likelihood = []
 fk = []
 skinning = []
 
+# Data, for each context
 synthPixels_gpu = []
 realPixels_gpu = []
 mouseVertices_gpu = []
@@ -101,6 +98,10 @@ likelihoods_gpu = []
 jointRotations_gpu = []
 baseJointRotations_gpu = []
 jointTranslations_gpu = []
+
+# compile the kernel code 
+basePath = os.path.split(os.path.realpath(__file__))[0]
+includePath = os.path.join(basePath, "include")
 
 for ctx in contexts:
     ctx.push()
