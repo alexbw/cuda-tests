@@ -145,6 +145,12 @@ for ctx in contexts:
     jointWeightIndices_cpu = m.joint_idx.astype('uint16')
     jointWeightIndices_gpu.append(gpuarray.to_gpu(jointWeightIndices_cpu))
 
+    # Okay, for joint transforms,
+    # -- [x,y,z]
+    # x : left and right sweeps
+    # y : twisting
+    # z : up and down motions
+    
     # Joint transforms
     if shouldWeTryFK:
         new_rotations = m.joint_rotations.copy()
@@ -197,12 +203,12 @@ for i in range(1,2):
     for i,ctx in enumerate(contexts):
         ctx.push()
         #fk (currently broken, but does the right number of operations)
-        fk[i](jointRotations_gpu[i],
-                jointTranslations_gpu[i],
-                inverseBindingMatrix_gpu[i],
-                jointTransforms_gpu[i],
-                grid=(numBlocksFK,1,1),
-                block=(numThreadsFK,1,1))
+        # fk[i](jointRotations_gpu[i],
+        #         jointTranslations_gpu[i],
+        #         inverseBindingMatrix_gpu[i],
+        #         jointTransforms_gpu[i],
+        #         grid=(numBlocksFK,1,1),
+        #         block=(numThreadsFK,1,1))
 
         #skin
         # PLEASE ADD THE ABILITY TO ADD SCALING
