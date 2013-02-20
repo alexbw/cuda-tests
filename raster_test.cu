@@ -557,7 +557,7 @@ __global__ void FKSerial(GLVertex *baseRotations,
 
     // == Get the Changed E's.
     // ========================================
-    printf("\n\nChanged E's...");
+    printf("\n\nChanged E's...\n");
     for (int i=0; i < NJOINTS; ++i) {{
         changedE[i] = calculateEMatrix(rotations[i], translations[i]);
         printEigenMat(changedE[i]);
@@ -565,15 +565,18 @@ __global__ void FKSerial(GLVertex *baseRotations,
 
     // == Get the changed M's
     // ========================================
-    changedM[0] = changedE[0];
+    changedM[0] = Matrix4f(changedE[0]);
     for (int i=0; i < NJOINTS; ++i) {{
         changedM[i] = changedE[i]*changedM[i-1];
     }}
-    printf("\n\nChanged M's...");
-    for (int i=0; i < NJOINTS; ++i) printEigenMat(changedM[i]);
+    printf("\n\nChanged M's...\n");
+    for (int i=0; i < NJOINTS; ++i) {{
+        printEigenMat(changedM[i]);
+    }}
 
     // == Create the final M's by multiplying the fixed and changed M's. 
     // ========================================
+    printf("\n\nFinal M's...\n")
     for (int i=0; i < NJOINTS; ++i) {{
         M[i] = fixedM[i]*changedM[i];
         printEigenMat(M[i]);
