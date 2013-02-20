@@ -148,7 +148,7 @@ for ctx in contexts:
     # Joint transforms
     if shouldWeTryFK:
         new_rotations = m.joint_rotations.copy()
-        new_rotations[2,1] = 90.0
+        new_rotations[2,1] = 0.0
         jointTransforms_cpu = np.vstack(forward_kinematics.get_Ms(new_rotations)).astype('float32')
         jointTransforms_cpu = np.tile(jointTransforms_cpu, (numMicePerPass,1))
     else:
@@ -241,7 +241,7 @@ for i in range(1,2):
 depthBuffer = synthPixels_gpu[0].get()
 offset = 0
 depthBuffer = depthBuffer[resolutionY*offset:resolutionY*(offset+1),0:resolutionX]
-imshow(depthBuffer1)
+imshow(depthBuffer)
 # close('all')
 # figure(figsize=(8,3))
 # subplot(1,2,1)
