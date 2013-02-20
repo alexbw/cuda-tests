@@ -304,7 +304,7 @@ class MousePoser(object):
 
             posed_mice.append(self.synthPixels_gpu[i].get())
             ctx.pop()
-            return np.vstack(posed_mice)
+            return np.vstack(posed_mice).reshape(-1,64,64)
         
 
     def teardown(self):
@@ -332,6 +332,8 @@ if __name__ == "__main__":
     m = MouseData(scenefile="mouse_mesh_low_poly3.npz")
     mp = MousePoser(mouseModel=m, maxNumBlocks=30)
     ja = np.tile(mp.jointRotations_cpu, (1,1))
+    ja[:,0] += np.random.normal(size=(ja.shape[0],), scale=10)
+    ja[:,2] += np.random.normal(size=(ja.shape[0],), scale=10)
     p = mp.get_posed_mice(ja)
     l = mp.get_likelihoods(ja, np.zeros((64,64), dtype='float32'))
-    plt.imshow(p[:64,:])
+    # plt.imshow(p[:64,:])
