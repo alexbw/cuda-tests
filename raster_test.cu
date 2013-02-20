@@ -460,11 +460,10 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
 
     for (int i=0; i < NVERTS; ++i) {{
         // Grab the unposed vertex
-        Vector4f vertex(vertices[i].x, vertices[i].z, vertices[i].y, 1.0);
+        Vector4f vertex(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
         // Make our destination vertex
         Vector4f skinnedVertex(0., 0., 0., 0.);
 
-        float tmpWeight = 1.0 / (float)(N_JOINT_INFLUENCES);
         for (int ijoint=0; ijoint<N_JOINT_INFLUENCES; ++ijoint) {{
             int index = jointWeightIndices[i].idx[ijoint];
             float weight = jointWeights[i].w[ijoint];
