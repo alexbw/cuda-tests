@@ -520,8 +520,6 @@ __global__ void FKSerial(GLVertex *baseRotations,
     // NOTE:
     // - The E inverse could be optimized. 
 
-    // Verify fixed M matrix
-
     // Notation:
     // M - skinning matrix. You can multiply an unposed vector into M and get a posed vector.
     // E - local transformation matrix. Represents a rotation and translation from (0,0)
@@ -537,19 +535,6 @@ __global__ void FKSerial(GLVertex *baseRotations,
 
     rotations += mouseIdx*NJOINTS;
     jointTransforms += mouseIdx*NJOINTS;
-
-    // // Verify rotation    
-    // printf("This is the rotation\n");
-    // for (int i=0; i < NJOINTS; ++i) {{
-    //     printf("%2.2f, %2.2f, %2.2f\n", rotations[i].x, rotations[i].y, rotations[i].z);
-    // }}
-
-    // // Verify translation
-    // printf("This is the translation\n");
-    // for (int i=0; i < NJOINTS; ++i) {{
-    //     printf("%2.2f, %2.2f, %2.2f\n", translations[i].x, translations[i].y, translations[i].z);
-    // }}
-
 
     Matrix4f fixedE[NJOINTS];
     Matrix4f fixedM[NJOINTS];
@@ -567,7 +552,6 @@ __global__ void FKSerial(GLVertex *baseRotations,
     fixedM[0] = fixedE[0].inverse();
     for (int i=1; i < NJOINTS; ++i) {{
         fixedM[i] = fixedM[i-1]*fixedE[i].inverse();
-        printEigenMat(fixedM[i]);
     }}
 
 
