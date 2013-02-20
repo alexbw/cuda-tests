@@ -20,7 +20,7 @@ from matplotlib.pyplot import *
 from itertools import product
 import fk as forward_kinematics
 
-shouldWeTryFK = True
+shouldWeTryFK = False
 
 import pycuda.autoinit
 # Grab a context for each GPU
@@ -241,7 +241,7 @@ for i in range(1,2):
 depthBuffer = synthPixels_gpu[0].get()
 offset = 0
 depthBuffer = depthBuffer[resolutionY*offset:resolutionY*(offset+1),0:resolutionX]
-# imshow(depthBuffer)
+# imshow(depthBuffer1)
 # close('all')
 # figure(figsize=(8,3))
 # subplot(1,2,1)
