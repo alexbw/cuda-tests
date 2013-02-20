@@ -235,6 +235,7 @@ __global__ void rasterizeSerial(GLVertex *skinnedVertices,
 
 
     int depthBufferOffset = NUMPIXELS_PER_MOUSE*(bx*bw + tx);
+
     // For each triangle, rasterize the crap out of it
     // (for now, don't care about overlaps)
     for (int iface=0; iface < NFACES; ++iface) 
@@ -243,8 +244,6 @@ __global__ void rasterizeSerial(GLVertex *skinnedVertices,
         unsigned short i1 = triangles[iface].v1;
         unsigned short i2 = triangles[iface].v2;
 
-        // NOTE THE SWAP MANG
-        // MAYA's coordinates are left-handed, which I liketh not. 
         Vector3f a(skinnedVertices[i0].x, skinnedVertices[i0].y, skinnedVertices[i0].z);
         Vector3f b(skinnedVertices[i1].x, skinnedVertices[i1].y, skinnedVertices[i1].z);;
         Vector3f c(skinnedVertices[i2].x, skinnedVertices[i2].y, skinnedVertices[i2].z);;
