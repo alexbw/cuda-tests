@@ -484,7 +484,7 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
 
 }}
 
-__device__ Matrix4f calculateEMatrix(GLVertex *angle, GLVertex *translation)
+__device__ Matrix4f calculateEMatrix(GLVertex angle, GLVertex translation)
 {{
     float rotx = angle.x;
     float roty = angle.y;
@@ -513,7 +513,7 @@ __device__ Matrix4f calculateEMatrix(GLVertex *angle, GLVertex *translation)
 extern "C"
 __global__ void FKSerial(GLVertex *baseRotations,
                          GLVertex *rotations,
-                         GLVertex *translations,
+                         GLVertex translations,
                          Plain4x4Matrix_f *jointTransforms)
 {{
     // NOTE:
@@ -524,6 +524,12 @@ __global__ void FKSerial(GLVertex *baseRotations,
     // E - local transformation matrix. Represents a rotation and translation from (0,0)
     // "Fixed" matrix - a matrix computed using defualt, or unposed, rotations
     // "Changed" matrix - a matrix computed using non-default, or posed, rotations
+
+    const uint bx = blockIdx.x;
+    const uint bw = blockDim.x;
+    const uint tx = threadIdx.x;
+
+    int mouseIdx = bx*bw + tx;
 
     rotations += mouseIdx*NJOINTS;
     jointTransforms += mouseIdx*NJOINTS;
@@ -583,6 +589,7 @@ __global__ void FKSerial2(GLVertex *rotations,
     const uint tx = threadIdx.x;
 
     int mouseIdx = bx*bw + tx;
+
 
     rotations += mouseIdx*NJOINTS;
     translations += mouseIdx*NJOINTS;
