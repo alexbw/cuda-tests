@@ -18,6 +18,9 @@ from pycuda.driver import func_cache
 from MouseData import MouseData
 from matplotlib.pyplot import *
 from itertools import product
+import fk
+
+shouldWeTryFK = True
 
 import pycuda.autoinit
 # Grab a context for each GPU
