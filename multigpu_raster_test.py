@@ -20,7 +20,7 @@ from matplotlib.pyplot import *
 from itertools import product
 import fk as forward_kinematics
 
-shouldWeTryFK = False
+shouldWeTryFK = True
 
 import pycuda.autoinit
 # Grab a context for each GPU
