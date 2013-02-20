@@ -233,6 +233,8 @@ for i,ctx in enumerate(contexts):
             likelihoods_gpu[i],
             grid=(numBlocksLK,1,1),
             block=(numThreadsLK,1,1))
+
+    this_l = likelihoods_gpu[i].get_async()
     ctx.pop()
 
 for ctx in contexts:
