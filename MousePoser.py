@@ -266,46 +266,60 @@ class MousePoser(object):
                 likelihoods.append(self.likelihoods_gpu[i].get())
                 ctx.pop()
 
-        return np.vstack(likelihoods)
+        return np.hstack(likelihoods)
 
 
     def get_posed_mice(self, joint_angles):
         # TODO: mostly the same as get_likelihoods
+
+        numProposals, numAngles = joint_angles.shape
+        numProposals /= self.numJoints
+        assert numAngles == 3, "Need 3 angles, bro"
+        assert np.mod(numProposals, self.numMice) == 0, "Num proposals must be a multiple of %d" % self.numMice
+
+        niter = numProposals/(self.numMice*self.numGPUs)
+
         posed_mice =  []
-        for i,ctx in enumerate(self.contexts):
-            ctx.push()
-            self.jointRotations_gpu[i].set_async(joint_angles)
+        for this_iter in range(niter):
+            idx_iter = this_iter*self.numMice*self.numGPUs
 
-            #fk
-            self.fk[i](self.baseJointRotations_gpu[i],
-                    self.jointRotations_gpu[i],
-                    self.jointTranslations_gpu[i],
-                    self.jointTransforms_gpu[i],
-                    grid=(self.numBlocksFK,1,1),
-                    block=(self.numThreadsFK,1,1))
+            for i,ctx in enumerate(self.contexts):
+                idx_gpu = idx_iter + i*self.numMice
+                these_angles = joint_angles[idx_gpu:idx_gpu+self.numMice*self.numJoints,:]
 
-            #skin
-            # PLEASE ADD THE ABILITY TO ADD SCALING
-            self.skinning[i](self.jointTransforms_gpu[i],
-                    self.mouseVertices_gpu[i],
-                    self.jointWeights_gpu[i],
-                    self.jointWeightIndices_gpu[i],
-                    self.skinnedVertices_gpu[i],
-                    grid=(self.numBlocksSK,1,1),
-                    block=(self.numThreadsSK,1,1))
+                ctx.push()
+                self.jointRotations_gpu[i].set(these_angles)
 
-            #raster
-            self.raster[i]( self.skinnedVertices_gpu[i], 
-                    self.mouseVertices_gpu[i],
-                    self.mouseVertexIdx_gpu[i],
-                    self.synthPixels_gpu[i],
-                    grid=(self.numBlocksRS,1,1),
-                    block=(self.numThreadsRS,1,1))
+                #fk
+                self.fk[i](self.baseJointRotations_gpu[i],
+                        self.jointRotations_gpu[i],
+                        self.jointTranslations_gpu[i],
+                        self.jointTransforms_gpu[i],
+                        grid=(self.numBlocksFK,1,1),
+                        block=(self.numThreadsFK,1,1))
 
-            posed_mice.append(self.synthPixels_gpu[i].get())
-            ctx.pop()
-            return np.vstack(posed_mice).reshape(-1,64,64)
-        
+                #skin
+                # PLEASE ADD THE ABILITY TO ADD SCALING
+                self.skinning[i](self.jointTransforms_gpu[i],
+                        self.mouseVertices_gpu[i],
+                        self.jointWeights_gpu[i],
+                        self.jointWeightIndices_gpu[i],
+                        self.skinnedVertices_gpu[i],
+                        grid=(self.numBlocksSK,1,1),
+                        block=(self.numThreadsSK,1,1))
+
+                #raster
+                self.raster[i]( self.skinnedVertices_gpu[i], 
+                        self.mouseVertices_gpu[i],
+                        self.mouseVertexIdx_gpu[i],
+                        self.synthPixels_gpu[i],
+                        grid=(self.numBlocksRS,1,1),
+                        block=(self.numThreadsRS,1,1))
+
+                posed_mice.append(self.synthPixels_gpu[i].get())
+                ctx.pop()
+        return np.vstack(posed_mice).reshape(-1,self.resolutionY,self.resolutionX)
+            
 
     def teardown(self):
         # Free everything up after the fact
@@ -331,7 +345,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     m = MouseData(scenefile="mouse_mesh_low_poly3.npz")
     mp = MousePoser(mouseModel=m, maxNumBlocks=30)
-    ja = np.tile(mp.jointRotations_cpu, (1,1))
+    ja = np.tile(mp.jointRotations_cpu, (2,1))
     ja[:,0] += np.random.normal(size=(ja.shape[0],), scale=10)
     ja[:,2] += np.random.normal(size=(ja.shape[0],), scale=10)
     p = mp.get_posed_mice(ja)
