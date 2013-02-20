@@ -570,12 +570,12 @@ __global__ void FKSerial(GLVertex *baseRotations,
     // ========================================
     for (int i=0; i < NJOINTS; ++i) {{
         M[i] = fixedM[i]*changedM[i];
-    for (int ii=0; ii < 4; ++ii) {{
-        for (int jj=0; jj < 4; ++jj) {{
-            int idx = ii*4 + jj;
-            plainMat.matrix[idx] = EigenMat(ii,jj);
+        for (int ii=0; ii < 4; ++ii) {{
+            for (int jj=0; jj < 4; ++jj) {{
+                int idx = ii*4 + jj;
+                jointTransforms[i].matrix[idx] = M[i](ii,jj);
+            }}
         }}
-    }}
     }}
 
 }}
