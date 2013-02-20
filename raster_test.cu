@@ -520,7 +520,6 @@ __global__ void FKSerial(GLVertex *baseRotations,
     // NOTE:
     // - The E inverse could be optimized. 
 
-    // Verify fixed E matrix
     // Verify fixed M matrix
 
     // Notation:
@@ -561,7 +560,6 @@ __global__ void FKSerial(GLVertex *baseRotations,
     // ========================================
     for (int i=0; i < NJOINTS; ++i) {{
         fixedE[i] = calculateEMatrix(baseRotations[i], translations[i]);
-        printEigenMat(fixedE[i]);
     }}
 
     // == Get the fixed M's.
@@ -569,6 +567,7 @@ __global__ void FKSerial(GLVertex *baseRotations,
     fixedM[0] = fixedE[0].inverse();
     for (int i=1; i < NJOINTS; ++i) {{
         fixedM[i] = fixedM[i-1]*fixedE[i].inverse();
+        printEigenMat(fixedM[i]);
     }}
 
 
