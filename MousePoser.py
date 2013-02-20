@@ -4,6 +4,7 @@ import time
 from pycuda import driver, compiler, gpuarray, tools
 from pycuda.compiler import SourceModule
 from pycuda.driver import func_cache
+from pycuda.driver import device_attribute
 import pycuda.autoinit
 
 class MousePoser(object):
@@ -27,7 +28,7 @@ class MousePoser(object):
 
         # SET TUNABLE PARAMETERS
         self.maxNumBlocks = maxNumBlocks
-        self.maxNumThreads = self.devices[0].get_attribute(driver.device_attribute.MAX_THREADS_PER_BLOCK))
+        self.maxNumThreads = self.devices[0].get_attribute(device_attribute.MAX_THREADS_PER_BLOCK))
         self.numMicePerPass = self.maxNumBlocks*self.maxNumThreads
         self.resolutionX = imageSize[1]
         self.resolutionY = imageSize[0]
@@ -54,8 +55,6 @@ class MousePoser(object):
             self.devices.append(dev)
             self.contexts.append(ctx)
             
-
-
     def _set_cache_preference(self, cache_config=driver.func_cache.PREFER_L1):
         # Cache rules everything around me
         for ctx in contexts:
@@ -116,7 +115,7 @@ class MousePoser(object):
             # -- [x,y,z]
             # x : left and right sweeps
             # y : twisting
-            # z : up and down motions
+            # z : up and down rears
             
             # Joint transforms
             self.jointTransforms_cpu = np.eye(4, dtype='float32')
@@ -173,14 +172,23 @@ class MousePoser(object):
             self.skinning.append(mod.get_function("skinningSerial"))
             ctx.pop()
 
-    def _set_kernel_run_sizes(self):
-        self.numBlocksFK,self.numThreadsFK = 10,256
+    def _set_kernel_run_sizes(self, numBlocks=10, numThreads=256):
+        """For now, don't worry about auto-tuning specific functions. Everybody
+        gets the same block size so that we can do equal work easily.
+
+        The next thing to try is to have integral ratios of block and thread
+        differences, and we'll add for loops around each kernel call."""
+
+        assert mod(self.maxNumPossibleThreads, numThreads), "Threads must be an integral multiple of max possible"
+        assert mod(self.maxNumBlocks, numBlocks), "Blocks must be an integral multiple of max possible"
+
+        self.numBlocksFK,self.numThreadsFK = numBlocks,numThreads
         self.numMiceFK = self.numBlocksFK*self.numThreadsFK
-        self.numBlocksRS,self.numThreadsRS = 10,256
+        self.numBlocksRS,self.numThreadsRS = numBlocks,numThreads
         self.numMiceRS = self.numBlocksRS*self.numThreadsRS
-        self.numBlocksSK,self.numThreadsSK = 10,256
+        self.numBlocksSK,self.numThreadsSK = numBlocks,numThreads
         self.numMiceSK = self.numBlocksSK*self.numThreadsSK
-        self.numBlocksLK,self.numThreadsLK = 10,256
+        self.numBlocksLK,self.numThreadsLK = numBlocks,numThreads
         self.numMiceLK = self.numBlocksLK*self.numThreadsLK
         self.numMice = min([self.numMiceFK, self.numMiceRS, self.numMiceSK, self.numMiceLK])
 
@@ -201,47 +209,56 @@ class MousePoser(object):
         # TODO: divvy up the joint angles properly
         # TODO: don't use lists, use nparrays and think about indexing you idiot
         # TODO: make sure the right number of calls are being made. This will require asserts.
+
+        numProposals, numAngles = joint_angles.shape
+        assert numAngles == 3, "Need 3 angles, bro"
+        assert mod(numProposals, self.numMice), "Num proposals must be a multiple of %d" % self.numMice
+
+        niter = numProposals/(self.numMice*self.numGPUs)
+        
         likelihoods = []
-        for i,ctx in enumerate(self.contexts):
-            ctx.push()
-            self.jointRotations_gpu[i].set_async(joint_angles)
-            self.realPixels_gpu[i].set_async(real_mouse_image)
+        for this_iter in range(niter):
+            idx_iter = this_iter*self.numMice*self.numGPUs
+            for i,ctx in enumerate(self.contexts):
+                ctx.push()
+                self.jointRotations_gpu[i].set_async(joint_angles)
+                self.realPixels_gpu[i].set_async(real_mouse_image)
 
-            #fk
-            self.fk[i](self.baseJointRotations_gpu[i],
-                    self.jointRotations_gpu[i],
-                    self.jointTranslations_gpu[i],
-                    self.jointTransforms_gpu[i],
-                    grid=(self.numBlocksFK,1,1),
-                    block=(self.numThreadsFK,1,1))
+                #fk
+                self.fk[i](self.baseJointRotations_gpu[i],
+                        self.jointRotations_gpu[i],
+                        self.jointTranslations_gpu[i],
+                        self.jointTransforms_gpu[i],
+                        grid=(self.numBlocksFK,1,1),
+                        block=(self.numThreadsFK,1,1))
 
-            #skin
-            # PLEASE ADD THE ABILITY TO ADD SCALING
-            self.skinning[i](self.jointTransforms_gpu[i],
-                    self.mouseVertices_gpu[i],
-                    self.jointWeights_gpu[i],
-                    self.jointWeightIndices_gpu[i],
-                    self.skinnedVertices_gpu[i],
-                    grid=(self.numBlocksSK,1,1),
-                    block=(self.numThreadsSK,1,1))
+                #skin
+                # PLEASE ADD THE ABILITY TO ADD SCALING
+                self.skinning[i](self.jointTransforms_gpu[i],
+                        self.mouseVertices_gpu[i],
+                        self.jointWeights_gpu[i],
+                        self.jointWeightIndices_gpu[i],
+                        self.skinnedVertices_gpu[i],
+                        grid=(self.numBlocksSK,1,1),
+                        block=(self.numThreadsSK,1,1))
 
-            #raster
-            self.raster[i]( self.skinnedVertices_gpu[i], 
-                    self.mouseVertices_gpu[i],
-                    self.mouseVertexIdx_gpu[i],
-                    self.synthPixels_gpu[i],
-                    grid=(self.numBlocksRS,1,1),
-                    block=(self.numThreadsRS,1,1))
+                #raster
+                self.raster[i]( self.skinnedVertices_gpu[i], 
+                        self.mouseVertices_gpu[i],
+                        self.mouseVertexIdx_gpu[i],
+                        self.synthPixels_gpu[i],
+                        grid=(self.numBlocksRS,1,1),
+                        block=(self.numThreadsRS,1,1))
 
-            #likelihood
-            self.likelihood[i](self.synthPixels_gpu[i],
-                    self.realPixels_gpu[i],
-                    self.likelihoods_gpu[i],
-                    grid=(self.numBlocksLK,1,1),
-                    block=(self.numThreadsLK,1,1))
+                #likelihood
+                self.likelihood[i](self.synthPixels_gpu[i],
+                        self.realPixels_gpu[i],
+                        self.likelihoods_gpu[i],
+                        grid=(self.numBlocksLK,1,1),
+                        block=(self.numThreadsLK,1,1))
 
-            likelihoods.append(self.likelihoods_gpu[i].get_async())
-            ctx.pop()
+                likelihoods.append(self.likelihoods_gpu[i].get_async())
+                ctx.pop()
 
         return np.asarray(likelihoods)
 
