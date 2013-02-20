@@ -460,7 +460,7 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
 
     for (int i=0; i < NVERTS; ++i) {{
         // Grab the unposed vertex
-        Vector4f vertex(vertices[i].x, vertices[i].z, vertices[i].y, 1.0);
+        Vector4f vertex(vertices[i].x, vertices[i].y, vertices[i].z, 1.0);
         // Make our destination vertex
         Vector4f skinnedVertex(0., 0., 0., 0.);
 
@@ -476,8 +476,8 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
         skinnedVertex = skinnedVertex+translate_vector;
 
         skinnedVertices[i].x = skinnedVertex(0);
-        skinnedVertices[i].y = skinnedVertex(1);
-        skinnedVertices[i].z = skinnedVertex(2);
+        skinnedVertices[i].z = skinnedVertex(1);
+        skinnedVertices[i].y = skinnedVertex(2);
     }}
 
 
