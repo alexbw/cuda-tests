@@ -576,7 +576,7 @@ __global__ void FKSerial(GLVertex *baseRotations,
 
     // == Create the final M's by multiplying the fixed and changed M's. 
     // ========================================
-    printf("\n\nFinal M's...\n")
+    printf("\n\nFinal M's...\n");
     for (int i=0; i < NJOINTS; ++i) {{
         M[i] = fixedM[i]*changedM[i];
         printEigenMat(M[i]);
