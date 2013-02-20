@@ -513,7 +513,7 @@ __device__ Matrix4f calculateEMatrix(GLVertex angle, GLVertex translation)
 extern "C"
 __global__ void FKSerial(GLVertex *baseRotations,
                          GLVertex *rotations,
-                         GLVertex translations,
+                         GLVertex *translations,
                          Plain4x4Matrix_f *jointTransforms)
 {{
     // NOTE:
@@ -542,7 +542,7 @@ __global__ void FKSerial(GLVertex *baseRotations,
     // == Get the fixed E's.
     // ========================================
     for (int i=0; i < NJOINTS; ++i) {{
-        fixedE[i] = calculateEMatrix(baseRotations[i], translations);
+        fixedE[i] = calculateEMatrix(baseRotations[i], translations[i]);
     }}
 
     // == Get the fixed M's.
@@ -556,7 +556,7 @@ __global__ void FKSerial(GLVertex *baseRotations,
     // == Get the Changed E's.
     // ========================================
     for (int i=0; i < NJOINTS; ++i) {{
-        changedE[i] = calculateEMatrix(rotations[i], translations);
+        changedE[i] = calculateEMatrix(rotations[i], translations[i]);
     }}
 
     // == Get the changed M's
