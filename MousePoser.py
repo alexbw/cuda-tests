@@ -22,23 +22,26 @@ class MousePoser(object):
         self.mouseModel = mouseModel
 
         self._setup_contexts()
-        self._set_cache_preference()
-        self._setup_arrays()
-        self._setup_kernels()
-
+        
         # SET TUNABLE PARAMETERS
         self.maxNumBlocks = maxNumBlocks
-        self.maxNumThreads = self.devices[0].get_attribute(device_attribute.MAX_THREADS_PER_BLOCK))
+        self.maxNumThreads = self.devices[0].get_attribute(device_attribute.MAX_THREADS_PER_BLOCK)
         self.numMicePerPass = self.maxNumBlocks*self.maxNumThreads
         self.resolutionX = imageSize[1]
         self.resolutionY = imageSize[0]
         self.numJoints = self.mouseModel.num_joints
 
+        self._set_kernel_run_sizes(numBlocks=10, numThreads=256)
+        self._set_cache_preference()
+        self._setup_kernels()
+        self._setup_arrays()
+        
+        
+
     def _setup_contexts(self):
         # Grab a context for each GPU
-        self.dev = driver.Device(0)
-        self.ctx = dev.make_context()
-        self.dev.count()
+        dev = driver.Device(0)
+        ctx = dev.make_context()
         self.devices = []
         self.contexts = []
         self.devices.append(dev)
@@ -46,10 +49,9 @@ class MousePoser(object):
 
         # Get the number of GPUs in this computer
         self.numGPUs = driver.Device(0).count()
-        self.maxNumPossibleThreads = []
 
         # Grab a context for each GPU
-        for i in range(1,numGPUs):
+        for i in range(1,self.numGPUs):
             dev = driver.Device(i)
             ctx = dev.make_context()
             self.devices.append(dev)
@@ -57,7 +59,7 @@ class MousePoser(object):
             
     def _set_cache_preference(self, cache_config=driver.func_cache.PREFER_L1):
         # Cache rules everything around me
-        for ctx in contexts:
+        for ctx in self.contexts:
             ctx.push()
             ctx.set_cache_config(cache_config)
             ctx.pop()
@@ -72,7 +74,6 @@ class MousePoser(object):
         self.jointWeights_gpu = []
         self.jointWeightIndices_gpu = []
         self.jointTransforms_gpu = []
-        self.inverseBindingMatrix_gpu = []
         self.likelihoods_gpu = []
         self.jointRotations_gpu = []
         self.baseJointRotations_gpu = []
@@ -81,12 +82,12 @@ class MousePoser(object):
         for ctx in self.contexts:
             ctx.push()
             # Synthetic pixels
-            self.synthPixels_cpu = np.zeros((resolutionX, resolutionY), dtype='float32')
-            self.synthPixels_cpu = np.tile(self.synthPixels_cpu, (numMicePerPass,1))
+            self.synthPixels_cpu = np.zeros((self.resolutionX, self.resolutionY), dtype='float32')
+            self.synthPixels_cpu = np.tile(self.synthPixels_cpu, (self.numMicePerPass,1))
             self.synthPixels_gpu.append(gpuarray.to_gpu_async(self.synthPixels_cpu))
 
             # Real mouse pixels
-            self.realPixels_cpu = np.zeros((int(resolutionX), int(resolutionY)), dtype='float32')
+            self.realPixels_cpu = np.zeros((int(self.resolutionX), int(self.resolutionY)), dtype='float32')
             self.realPixels_cpu += 10*np.random.random(self.realPixels_cpu.shape) # testing only
             self.realPixels_gpu.append(gpuarray.to_gpu_async(self.realPixels_cpu))
 
@@ -100,7 +101,7 @@ class MousePoser(object):
 
             # Skinned vertices
             self.skinnedVertices_cpu = self.mouseVertices_cpu.copy()
-            self.skinnedVertices_cpu = np.tile(self.skinnedVertices_cpu, (numMicePerPass,1))
+            self.skinnedVertices_cpu = np.tile(self.skinnedVertices_cpu, (self.numMicePerPass,1))
             self.skinnedVertices_gpu.append(gpuarray.to_gpu_async(self.skinnedVertices_cpu))
 
             # Joint weights
@@ -108,7 +109,7 @@ class MousePoser(object):
             self.jointWeights_gpu.append(gpuarray.to_gpu_async(self.jointWeights_cpu))
 
             # Joint weight indices
-            self.jointWeightIndices_cpu = self.mouseModeljoint_idx.astype('uint16')
+            self.jointWeightIndices_cpu = self.mouseModel.joint_idx.astype('uint16')
             self.jointWeightIndices_gpu.append(gpuarray.to_gpu_async(self.jointWeightIndices_cpu))
 
             # Okay, for joint transforms,
@@ -119,23 +120,16 @@ class MousePoser(object):
             
             # Joint transforms
             self.jointTransforms_cpu = np.eye(4, dtype='float32')
-            self.jointTransforms_cpu = np.tile(self.jointTransforms_cpu, (numMicePerPass*numJoints,1))
+            self.jointTransforms_cpu = np.tile(self.jointTransforms_cpu, (self.numMicePerPass*self.numJoints,1))
             self.jointTransforms_gpu.append(gpuarray.to_gpu_async(self.jointTransforms_cpu))
 
-            # Inverse binding matrices
-            self.inverseBindingMatrix_cpu = self.mouseModel.inverseBindingMatrices
-            self.inverseBindingMatrix_gpu.append(gpuarray.to_gpu_async(self.inverseBindingMatrix_cpu))
-
             # Likelihoods
-            self.likelihoods_cpu = np.zeros((numMicePerPass,), dtype='float32')
+            self.likelihoods_cpu = np.zeros((self.numMicePerPass,), dtype='float32')
             self.likelihoods_gpu.append(gpuarray.to_gpu_async(self.likelihoods_cpu))
 
             # Joint rotations
             self.jointRotations_cpu = self.mouseModel.joint_rotations.astype('float32')
-            if shouldWeMessWithSomeRotations:
-                self.jointRotations_cpu[2,0] += -15
-                self.jointRotations_cpu[3,0] += -15
-            self.jointRotations_cpu = np.tile(self.jointRotations_cpu, (numMicePerPass,1))
+            self.jointRotations_cpu = np.tile(self.jointRotations_cpu, (self.numMicePerPass,1))
             self.jointRotations_gpu.append(gpuarray.to_gpu_async(self.jointRotations_cpu))
 
             # Base joint rotations
@@ -146,6 +140,7 @@ class MousePoser(object):
             self.jointTranslations_cpu = self.mouseModel.joint_translations.astype('float32')
             self.jointTranslations_gpu.append(gpuarray.to_gpu_async(self.jointTranslations_cpu))
 
+            ctx.synchronize()
             ctx.pop()
 
     def _setup_kernels(self):
@@ -158,10 +153,13 @@ class MousePoser(object):
         self.fk = []
         self.skinning = []
 
+        basePath = os.path.split(os.path.realpath(__file__))[0]
+        includePath = os.path.join(basePath, "include")
+
         # Now, for each context, compile the kernel
         for ctx in self.contexts:
             ctx.push()
-            mod = compiler.SourceModule(kernel_code, options=\
+            mod = compiler.SourceModule(self._kernel_code, options=\
                                     ['-I%s' % includePath, \
                                     '--compiler-options', '-w',
                                     '--optimize', '3', \
@@ -179,8 +177,8 @@ class MousePoser(object):
         The next thing to try is to have integral ratios of block and thread
         differences, and we'll add for loops around each kernel call."""
 
-        assert mod(self.maxNumPossibleThreads, numThreads), "Threads must be an integral multiple of max possible"
-        assert mod(self.maxNumBlocks, numBlocks), "Blocks must be an integral multiple of max possible"
+        assert np.mod(self.maxNumThreads, numThreads) == 0, "Threads must be an integral multiple of max possible"
+        assert np.mod(self.maxNumBlocks, numBlocks) == 0, "Blocks must be an integral multiple of max possible"
 
         self.numBlocksFK,self.numThreadsFK = numBlocks,numThreads
         self.numMiceFK = self.numBlocksFK*self.numThreadsFK
@@ -191,6 +189,7 @@ class MousePoser(object):
         self.numBlocksLK,self.numThreadsLK = numBlocks,numThreads
         self.numMiceLK = self.numBlocksLK*self.numThreadsLK
         self.numMice = min([self.numMiceFK, self.numMiceRS, self.numMiceSK, self.numMiceLK])
+        self.numMicePerPass = self.numMice
 
     def _read_kernels(self):
         # Go ahead and grab the kernel code
@@ -211,23 +210,25 @@ class MousePoser(object):
         # TODO: make sure the right number of calls are being made. This will require asserts.
 
         numProposals, numAngles = joint_angles.shape
+        numProposals /= self.numJoints
         assert numAngles == 3, "Need 3 angles, bro"
-        assert mod(numProposals, self.numMice), "Num proposals must be a multiple of %d" % self.numMice
+        assert np.mod(numProposals, self.numMice) == 0, "Num proposals must be a multiple of %d" % self.numMice
 
         niter = numProposals/(self.numMice*self.numGPUs)
         
         likelihoods = []
         for this_iter in range(niter):
             idx_iter = this_iter*self.numMice*self.numGPUs
+
             for i,ctx in enumerate(self.contexts):
                 idx_gpu = idx_iter + i*self.numMice
-                these_angles = joint_angles[idx_gpu:idx_gpu+self.numMice,:]
+                these_angles = joint_angles[idx_gpu:idx_gpu+self.numMice*self.numJoints,:]
                 ctx.push()
-                self.jointRotations_gpu[i].set_async(these_angles)
+                self.jointRotations_gpu[i].set(these_angles)
                 
                 # Only upload the mouse image on the first iteration
                 if this_iter == 0:
-                    self.realPixels_gpu[i].set_async(real_mouse_image)
+                    self.realPixels_gpu[i].set(real_mouse_image)
 
                 #fk
                 self.fk[i](self.baseJointRotations_gpu[i],
@@ -262,10 +263,10 @@ class MousePoser(object):
                         grid=(self.numBlocksLK,1,1),
                         block=(self.numThreadsLK,1,1))
 
-                likelihoods.append(self.likelihoods_gpu[i].get_async())
+                likelihoods.append(self.likelihoods_gpu[i].get())
                 ctx.pop()
 
-        return np.asarray(likelihoods)
+        return np.vstack(likelihoods)
 
 
     def get_posed_mice(self, joint_angles):
@@ -300,26 +301,37 @@ class MousePoser(object):
                     self.synthPixels_gpu[i],
                     grid=(self.numBlocksRS,1,1),
                     block=(self.numThreadsRS,1,1))
-            posed_mice.append(synthPixels_gpu[i].get_async())
+
+            posed_mice.append(self.synthPixels_gpu[i].get())
             ctx.pop()
-            return np.asarray(posed_mice)
+            return np.vstack(posed_mice)
         
 
     def teardown(self):
         # Free everything up after the fact
-        for i in range(len(contexts)):
-            del synthPixels_gpu[0]
-            del realPixels_gpu[0]
-            del mouseVertices_gpu[0]
-            del mouseVertexIdx_gpu[0]
-            del skinnedVertices_gpu[0]
-            del jointWeights_gpu[0]
-            del jointWeightIndices_gpu[0]
-            del jointTransforms_gpu[0]
-            del inverseBindingMatrix_gpu[0]
-            del likelihoods_gpu[0]
-            del jointRotations_gpu[0]
-            del jointTranslations_gpu[0]
+        for i in range(len(self.contexts)):
+            del self.synthPixels_gpu[0]
+            del self.realPixels_gpu[0]
+            del self.mouseVertices_gpu[0]
+            del self.mouseVertexIdx_gpu[0]
+            del self.skinnedVertices_gpu[0]
+            del self.jointWeights_gpu[0]
+            del self.jointWeightIndices_gpu[0]
+            del self.jointTransforms_gpu[0]
+            del self.likelihoods_gpu[0]
+            del self.jointRotations_gpu[0]
+            del self.jointTranslations_gpu[0]
 
-        for c in contexts:
+        for c in self.contexts:
             driver.Context.pop() # don't know why this is needed, but it seems to be
+
+
+if __name__ == "__main__":
+    from MouseData import MouseData
+    import matplotlib.pyplot as plt
+    m = MouseData(scenefile="mouse_mesh_low_poly3.npz")
+    mp = MousePoser(mouseModel=m, maxNumBlocks=30)
+    ja = np.tile(mp.jointRotations_cpu, (1,1))
+    p = mp.get_posed_mice(ja)
+    l = mp.get_likelihoods(ja, np.zeros((64,64), dtype='float32'))
+    plt.imshow(p[:64,:])
