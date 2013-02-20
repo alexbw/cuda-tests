@@ -519,11 +519,17 @@ __global__ void FKSerial(GLVertex *baseRotations,
     // NOTE:
     // - The E inverse could be optimized. 
 
+    // Verify rotation
+    // Verify translation
+    // Verify fixed E matrix
+    // Verify fixed M matrix
+
     // Notation:
     // M - skinning matrix. You can multiply an unposed vector into M and get a posed vector.
     // E - local transformation matrix. Represents a rotation and translation from (0,0)
     // "Fixed" matrix - a matrix computed using defualt, or unposed, rotations
     // "Changed" matrix - a matrix computed using non-default, or posed, rotations
+
 
     const uint bx = blockIdx.x;
     const uint bw = blockDim.x;
@@ -533,6 +539,19 @@ __global__ void FKSerial(GLVertex *baseRotations,
 
     rotations += mouseIdx*NJOINTS;
     jointTransforms += mouseIdx*NJOINTS;
+
+    // Verify rotation    
+    printf("This is the rotation\n");
+    for (int i=0; i < NJOINTS; ++i) {{
+        printf("%2.2f, %2.2f, %2.2f\n", rotations[i].x, rotations[i].y, rotations[i].z)
+    }}
+
+    // Verify translation
+    printf("This is the translation\n");
+    for (int i=0; i < NJOINTS; ++i) {{
+        printf("%2.2f, %2.2f, %2.2f\n", translations[i].x, translations[i].y, translations[i].z)
+    }}
+
 
     Matrix4f fixedE[NJOINTS];
     Matrix4f fixedM[NJOINTS];

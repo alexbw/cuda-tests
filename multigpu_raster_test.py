@@ -186,7 +186,8 @@ for ctx in contexts:
     ctx.pop()
 
 
-numBlocksFK,numThreadsFK = 10,256
+# numBlocksFK,numThreadsFK = 10,256
+numBlocksFK,numThreadsFK = 1,1
 numMiceFK = numBlocksFK*numThreadsFK
 numBlocksRS,numThreadsRS = 10,256
 numMiceRS = numBlocksRS*numThreadsRS
