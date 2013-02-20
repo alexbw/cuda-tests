@@ -262,8 +262,8 @@ imshow(depthBuffer)
 l = likelihoods_gpu[0].get()
 # assert np.allclose(l[0], np.sum(np.abs(depthBuffer-realBuffer))), "Likelihood gotta be right"
 
-
-
+verts = skinnedVertices_gpu[0].get()
+M = jointTransforms_gpu[0].get()
 
 
 # Free everything up after the fact
