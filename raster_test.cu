@@ -348,7 +348,7 @@ __global__ void rasterizeSerial(GLVertex *skinnedVertices,
     Vector3f translate_vector(RESOLUTION_X/2, RESOLUTION_Y/2, 0.);
     for (int i=0; i < NVERTS; ++i) {{
         // Grab from memory
-        Vector3f v(vertices[i].x, vertices[i].z, vertices[i].y);
+        Vector3f v(vertices[i].x, vertices[i].y, vertices[i].z);
 
         // Transform to screen space
         v = scale_matrix*v;
