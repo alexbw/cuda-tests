@@ -572,6 +572,7 @@ __global__ void FKSerial(GLVertex *baseRotations,
     // ========================================
     for (int i=0; i < NJOINTS; ++i) {{
         M[i] = fixedM[i]*changedM[i];
+        printEigenMat(M[i]);
         for (int ii=0; ii < 4; ++ii) {{
             for (int jj=0; jj < 4; ++jj) {{
                 int idx = ii*4 + jj;
@@ -626,8 +627,6 @@ __global__ void FKSerial2(GLVertex *rotations,
         Matrix4f Bi = Matrix4f::Identity();
         copyMat4x4ToEigen(inverseBindingMatrix[ijoint], Bi);
         Matrix4f M = Bi*jointWorldMatrix;
-        // printEigenMat(Bi);
-        // printEigenMat(jointWorldMatrix);
 
         // Save that skinning matrix out
         copyEigenToMat4x4(jointTransforms[ijoint], M);
