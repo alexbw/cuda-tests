@@ -20,7 +20,7 @@ from matplotlib.pyplot import *
 from itertools import product
 import fk as forward_kinematics
 
-shouldWeTryFK = True
+shouldWeTryCPUSideFK = False
 
 import pycuda.autoinit
 # Grab a context for each GPU
@@ -152,7 +152,7 @@ for ctx in contexts:
     # z : up and down motions
     
     # Joint transforms
-    if shouldWeTryFK:
+    if shouldWeTryCPUSideFK:
         new_rotations = m.joint_rotations.copy()
         new_rotations[2,0] += -15.0
         new_rotations[3,0] += -15.0
