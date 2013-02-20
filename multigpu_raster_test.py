@@ -21,6 +21,7 @@ from itertools import product
 import fk as forward_kinematics
 
 shouldWeTryCPUSideFK = False
+shouldWeMessWithSomeRotations = True
 
 import pycuda.autoinit
 # Grab a context for each GPU
@@ -174,6 +175,9 @@ for ctx in contexts:
     # Joint rotations
     jointRotations_cpu = m.joint_rotations.astype('float32')
     jointRotations_cpu = jointRotations_cpu[:,:]
+    if shouldWeMessWithSomeRotations:
+        jointRotations_cpu[2,0] += -15
+        jointRotations_cpu[3,0] += -15
     jointRotations_cpu = np.tile(jointRotations_cpu, (numMicePerPass,1))
     jointRotations_gpu.append(gpuarray.to_gpu(jointRotations_cpu))
 
