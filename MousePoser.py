@@ -220,9 +220,14 @@ class MousePoser(object):
         for this_iter in range(niter):
             idx_iter = this_iter*self.numMice*self.numGPUs
             for i,ctx in enumerate(self.contexts):
+                idx_gpu = idx_iter + i*self.numMice
+                these_angles = joint_angles[idx_gpu:idx_gpu+self.numMice,:]
                 ctx.push()
-                self.jointRotations_gpu[i].set_async(joint_angles)
-                self.realPixels_gpu[i].set_async(real_mouse_image)
+                self.jointRotations_gpu[i].set_async(these_angles)
+                
+                # Only upload the mouse image on the first iteration
+                if this_iter == 0:
+                    self.realPixels_gpu[i].set_async(real_mouse_image)
 
                 #fk
                 self.fk[i](self.baseJointRotations_gpu[i],
