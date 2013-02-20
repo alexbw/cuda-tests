@@ -49,7 +49,7 @@ for i in range(1,numGPUs):
 m = MouseData(scenefile="mouse_mesh_low_poly3.npz")
 
 # SET TUNABLE PARAMETERS
-maxNumBlocks = 100
+maxNumBlocks = 30
 maxNumThreads = 512
 numMicePerPass = maxNumBlocks*maxNumThreads
 resolutionX = np.int32(64)
