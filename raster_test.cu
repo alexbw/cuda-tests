@@ -504,7 +504,8 @@ __device__ Matrix4f calculateEMatrix(GLVertex angle, GLVertex translation)
     Matrix4f out = Matrix4f::Identity();
     out <<  cy*cz,          cy*sz,         -sy   , translation.x,
             -cx*sz+sx*sy*cz, cx*cz+sx*sy*sz, sx*cy, translation.y,
-            sx*sz+sy*cx*cz, -sx*cz+cx*sy*sz,  cx*cy, translation.z;
+            sx*sz+sy*cx*cz, -sx*cz+cx*sy*sz,  cx*cy, translation.z,
+            0.0,            0.0,              0.0,    1.0;
 
     return out;
 
