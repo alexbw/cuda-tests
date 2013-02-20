@@ -18,7 +18,7 @@ from pycuda.driver import func_cache
 from MouseData import MouseData
 from matplotlib.pyplot import *
 from itertools import product
-import fk
+import fk as forward_kinematics
 
 shouldWeTryFK = True
 
@@ -149,7 +149,7 @@ for ctx in contexts:
     if shouldWeTryFK:
         new_rotations = m.joint_rotations.copy()
         new_rotations[2,1] = 30.0
-        jointTransforms_cpu = np.vstack(fk.get_Ms(new_rotations))
+        jointTransforms_cpu = np.vstack(forward_kinematics.get_Ms(new_rotations))
         jointTransforms_cpu = np.tile(jointTransforms_cpu, (numMicePerPass,1))
     else:
         jointTransforms_cpu = np.eye(4, dtype='float32') # m.jointWorldMatrices
