@@ -201,7 +201,16 @@ class MousePoser(object):
                                                                 njoints=self.numJoints)
 
 
-
+    def benchmark(self):
+        import time
+        numRounds = 5
+        dummy_img = np.zeros((self.resolutionY, self.resolutionX), dtype='float32')
+        start = time.time()
+        for i in range(numRounds):
+            self.get_likelihoods(self.jointRotations_cpu, dummy_img)
+        timeElapsed = time.time() - start
+        micePerSec = numRounds*self.numMicePerPass / timeElapsed
+        print "Posed %f mice/sec" % micePerSec
 
     def get_likelihoods(self, joint_angles, real_mouse_image):
 
@@ -350,4 +359,5 @@ if __name__ == "__main__":
     ja[:,2] += np.random.normal(size=(ja.shape[0],), scale=10)
     p = mp.get_posed_mice(ja)
     l = mp.get_likelihoods(ja, np.zeros((64,64), dtype='float32'))
-    # plt.imshow(p[:64,:])
+
+    mp.benchmark()
