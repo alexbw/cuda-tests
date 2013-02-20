@@ -16,7 +16,6 @@ using namespace std;
 #define RESOLUTION_X {resx}
 #define RESOLUTION_Y {resy}
 #define NUMPIXELS_PER_MOUSE RESOLUTION_X*RESOLUTION_Y
-// #define SHITTYSHITTYHACK
 
 // ==============================
 // Helpers!
@@ -128,82 +127,29 @@ __device__ inline float getZAtBarycentricCoordinate(Vector3f barycentricCoord, V
 	return barycentricCoord(0)*a(2) + barycentricCoord(1)*b(2) + barycentricCoord(2)*c(2);
 }}
 
-__device__ inline Matrix3f rotateMatrix3D(float rotx, float roty, float rotz) {{
 
-	rotx = deg2rad(rotx);
-    roty = deg2rad(roty);
-    rotz = deg2rad(rotz);
-
-    float cx = cos(rotx);
-    float sx = sin(rotx);
-    float cy = cos(roty);
-    float sy = sin(roty);
-    float cz = cos(rotz);
-    float sz = sin(rotz);
-
-    Matrix3f Rx = Matrix3f::Identity(); 
-    Matrix3f Ry = Matrix3f::Identity(); 
-    Matrix3f Rz = Matrix3f::Identity();
-    Rx = Rx*cx;
-    Ry = Ry*cy;
-    Rz = Rz*cz;
-
-    Rx(0,0) += 1.0 - cx;
-    Ry(1,1) += 1.0 - cy;
-    Rz(2,2) += 1.0 - cz;
-
-    Rx(1,2) += -sx;
-    Rx(2,1) += sx;
-
-    Ry(0,2) += sy;
-    Ry(2,0) += -sy;
-
-    Rz(0,1) += -sz;
-    Rz(1,0) += sz;
-
-    Matrix3f t;
-    t = Rx*Ry*Rz;
-    return t;
+__device__ inline void translate(Matrix4f &transform, float transx, float transy, float transz)
+{{
+	transform(0,3) += transx;
+	transform(1,3) += transy;
+	transform(2,3) += transz;
 }}
 
-__device__ inline Matrix4f rotateMatrix2(float rotx, float roty, float rotz) {{
 
-	rotx = deg2rad(rotx);
-    roty = deg2rad(roty);
-    rotz = deg2rad(rotz);
-
-    float cx = cos(rotx);
-    float sx = sin(rotx);
-    float cy = cos(roty);
-    float sy = sin(roty);
-    float cz = cos(rotz);
-    float sz = sin(rotz);
-
-    Matrix4f Rx = Matrix4f::Identity(); 
-    Matrix4f Ry = Matrix4f::Identity(); 
-    Matrix4f Rz = Matrix4f::Identity();
-    Rx = Rx*cx;
-    Ry = Ry*cy;
-    Rz = Rz*cz;
-
-    Rx(0,0) += 1.0 - cx;
-    Ry(1,1) += 1.0 - cy;
-    Rz(2,2) += 1.0 - cz;
-
-    Rx(1,2) += -sx;
-    Rx(2,1) += sx;
-
-    Ry(0,2) += sy;
-    Ry(2,0) += -sy;
-
-    Rz(0,1) += -sz;
-    Rz(1,0) += sz;
-
-    Matrix4f t = Rx*Ry;
-    return t;
+__device__ inline Matrix4f scaleMatrix(float scalex, float scaley, float scalez)
+{{
+	Matrix4f t = Matrix4f::Identity();
+	t(0,0) = scalex;
+	t(1,1) = scaley;
+	t(2,2) = scalez;
+	return t;
 }}
 
-__device__ inline Matrix4f rotateMatrix(float rotx, float roty, float rotz) {{
+__device__ Matrix4f calculateEMatrix(GLVertex angle, GLVertex translation)
+{{
+    float rotx = angle.x;
+    float roty = angle.y;
+    float rotz = angle.z;
 
     rotx = deg2rad(rotx);
     roty = deg2rad(roty);
@@ -216,65 +162,14 @@ __device__ inline Matrix4f rotateMatrix(float rotx, float roty, float rotz) {{
     float cz = cos(rotz);
     float sz = sin(rotz);
 
-    Matrix4f Rx = Matrix4f::Identity(); 
-    Matrix4f Ry = Matrix4f::Identity(); 
-    Matrix4f Rz = Matrix4f::Identity();
+    Matrix4f out = Matrix4f::Identity();
+    out <<  cy*cz,          cy*sz,         -sy   , translation.x,
+            -cx*sz+sx*sy*cz, cx*cz+sx*sy*sz, sx*cy, translation.y,
+            sx*sz+sy*cx*cz, -sx*cz+cx*sy*sz,  cx*cy, translation.z,
+            0.0,            0.0,              0.0,    1.0;
 
-    // Right-handed convention
-    Rx(1,1) = cx;
-    Rx(1,2) = sx;
-    Rx(2,1) = -sx;
-    Rx(2,2) = cx;
+    return out;
 
-    Ry(0,0) = cy;
-    Ry(0,2) = -sy;
-    Ry(2,0) = sy;
-    Ry(2,2) = cy;
-
-    Rz(0,0) = cz;
-    Rz(0,1) = sz;
-    Rz(1,0) = -sz;
-    Rz(2,2) = cz;
-
-    Matrix4f t = Matrix4f::Identity();
-    t = t*Rz*Ry*Rx;
-    return t;
-}}
-
-__device__ inline void translate(Matrix4f &transform, float transx, float transy, float transz)
-{{
-	transform(0,3) += transx;
-	transform(1,3) += transy;
-	transform(2,3) += transz;
-}}
-
-__device__ inline Matrix4f translateMatrix(float transx, float transy, float transz)
-{{
-	Matrix4f t = Matrix4f::Identity();
-	t(0,3) = transx;
-    t(1,3) = transy;
-    t(2,3) = transz;
-    return t;
-
-}}
-
-__device__ inline Matrix3f scaleMatrix3D(float scalex, float scaley, float scalez)
-{{
-	Matrix3f t = Matrix3f::Identity();
-	t(0,0) = scalex;
-	t(1,1) = scaley;
-	t(2,2) = scalez;
-	return t;
-}}
-
-
-__device__ inline Matrix4f scaleMatrix(float scalex, float scaley, float scalez)
-{{
-	Matrix4f t = Matrix4f::Identity();
-	t(0,0) = scalex;
-	t(1,1) = scaley;
-	t(2,2) = scalez;
-	return t;
 }}
 
 __device__ inline Matrix4f EigenMatFromMemory(float *mat4inMemory) 
@@ -338,31 +233,6 @@ __global__ void rasterizeSerial(GLVertex *skinnedVertices,
     // Make sure we're looking at the right data
     skinnedVertices += NVERTS*(bw*bx + tx);
 
-    #ifdef SHITTYSHITTYHACK
-    // ======================================================================
-    // HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK 
-    // HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK 
-    // HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK 
-    // Remove when FK and skinning are implemented
-    Matrix3f scale_matrix = scaleMatrix3D(RESOLUTION_X*0.3, RESOLUTION_Y*0.3, 24.0);
-    Vector3f translate_vector(RESOLUTION_X/2, RESOLUTION_Y/2, 0.);
-    for (int i=0; i < NVERTS; ++i) {{
-        // Grab from memory
-        Vector3f v(vertices[i].x, vertices[i].y, vertices[i].z);
-
-        // Transform to screen space
-        v = scale_matrix*v;
-        v = v+translate_vector;
-
-
-        skinnedVertices[i].y = v(1);
-        skinnedVertices[i].z = v(2);
-    }}
-    // END HACK END HACK END HACK END HACK END HACK END HACK END HACK END HACK
-    // END HACK END HACK END HACK END HACK END HACK END HACK END HACK END HACK
-    // END HACK END HACK END HACK END HACK END HACK END HACK END HACK END HACK
-    // ======================================================================
-    #endif
 
     int depthBufferOffset = NUMPIXELS_PER_MOUSE*(bx*bw + tx);
     // For each triangle, rasterize the crap out of it
@@ -484,32 +354,6 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
 
 }}
 
-__device__ Matrix4f calculateEMatrix(GLVertex angle, GLVertex translation)
-{{
-    float rotx = angle.x;
-    float roty = angle.y;
-    float rotz = angle.z;
-
-    rotx = deg2rad(rotx);
-    roty = deg2rad(roty);
-    rotz = deg2rad(rotz);
-
-    float cx = cos(rotx);
-    float sx = sin(rotx);
-    float cy = cos(roty);
-    float sy = sin(roty);
-    float cz = cos(rotz);
-    float sz = sin(rotz);
-
-    Matrix4f out = Matrix4f::Identity();
-    out <<  cy*cz,          cy*sz,         -sy   , translation.x,
-            -cx*sz+sx*sy*cz, cx*cz+sx*sy*sz, sx*cy, translation.y,
-            sx*sz+sy*cx*cz, -sx*cz+cx*sy*sz,  cx*cy, translation.z,
-            0.0,            0.0,              0.0,    1.0;
-
-    return out;
-
-}}
 
 extern "C"
 __global__ void FKSerial(GLVertex *baseRotations,
@@ -584,57 +428,6 @@ __global__ void FKSerial(GLVertex *baseRotations,
 
 
 
-extern "C"
-// NOTE: UNFINISHED
-__global__ void FKSerial2(GLVertex *rotations,
-                        GLVertex *translations,
-                        Plain4x4Matrix_f *inverseBindingMatrix,
-                        Plain4x4Matrix_f *jointTransforms)
-{{
-    const uint bx = blockIdx.x;
-    const uint bw = blockDim.x;
-    const uint tx = threadIdx.x;
-
-    int mouseIdx = bx*bw + tx;
-
-
-    rotations += mouseIdx*NJOINTS;
-    translations += mouseIdx*NJOINTS;
-    jointTransforms += mouseIdx*NJOINTS;
-
-    Matrix4f lastJointWorldMatrix = Matrix4f::Identity();
-    Matrix4f jointWorldMatrix = Matrix4f::Identity();
-    // For each joint, starting with an identity transform,...
-    for (int ijoint=0; ijoint<NJOINTS; ++ijoint) {{
-        // Take the rotation and translation
-        float rx = rotations[ijoint].x;
-        float ry = rotations[ijoint].y;
-        float rz = rotations[ijoint].z;
-        float tx = translations[ijoint].x;
-        float ty = translations[ijoint].y;
-        float tz = translations[ijoint].z;
-
-        // Get the local transform
-        Matrix4f tmp = rotateMatrix(rx,ry,rz);
-        translate(tmp, tx, ty, tz);
-        Matrix4f localTransform = tmp;
-
-        // Multiply it by the parent world matrix to get the current world
-        jointWorldMatrix = localTransform*lastJointWorldMatrix;
-
-        // Multiply it by the inverse binding matrix to get the skinning matrix
-        Matrix4f Bi = Matrix4f::Identity();
-        copyMat4x4ToEigen(inverseBindingMatrix[ijoint], Bi);
-        Matrix4f M = Bi*jointWorldMatrix;
-
-        // Save that skinning matrix out
-        copyEigenToMat4x4(jointTransforms[ijoint], M);
-
-        // Save out the current world matrix as the parent of the next one
-        lastJointWorldMatrix = jointWorldMatrix;
-
-    }}
-}}
 
 
 
