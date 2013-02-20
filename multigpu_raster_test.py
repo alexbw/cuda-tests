@@ -49,7 +49,7 @@ for i in range(1,numGPUs):
 m = MouseData(scenefile="mouse_mesh_low_poly3.npz")
 
 # SET TUNABLE PARAMETERS
-maxNumBlocks = 30
+maxNumBlocks = 10
 maxNumThreads = 512
 numMicePerPass = maxNumBlocks*maxNumThreads
 resolutionX = np.int32(64)
@@ -199,7 +199,7 @@ numMice = min([numMiceFK, numMiceRS, numMiceSK, numMiceLK])
 start = time.time()
 for i,ctx in enumerate(contexts):
     ctx.push()
-    jointRotations_gpu[i].set(jointRotations_cpu)
+    jointRotations_gpu[i].set_async(jointRotations_cpu)
 
     #fk
     fk[i](baseJointRotations_gpu[i],
