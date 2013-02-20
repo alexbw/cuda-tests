@@ -146,8 +146,14 @@ for ctx in contexts:
     jointWeightIndices_gpu.append(gpuarray.to_gpu(jointWeightIndices_cpu))
 
     # Joint transforms
-    jointTransforms_cpu = np.eye(4, dtype='float32') # m.jointWorldMatrices
-    jointTransforms_cpu = np.tile(jointTransforms_cpu, (numMicePerPass*numJoints,1))
+    if shouldWeTryFK:
+        new_rotations = m.joint_rotations.copy()
+        new_rotations[2,1] = 30.0
+        jointTransforms_cpu = np.vstack(fk.get_Ms(new_rotations))
+        jointTransforms_cpu = np.tile(jointTransforms_cpu, (numMicePerPass,1))
+    else:
+        jointTransforms_cpu = np.eye(4, dtype='float32') # m.jointWorldMatrices
+        jointTransforms_cpu = np.tile(jointTransforms_cpu, (numMicePerPass*numJoints,1))
     jointTransforms_gpu.append(gpuarray.to_gpu(jointTransforms_cpu))
 
     # Inverse binding matrices
@@ -189,12 +195,12 @@ for i in range(1,2):
     for i,ctx in enumerate(contexts):
         ctx.push()
         #fk (currently broken, but does the right number of operations)
-        fk[i](jointRotations_gpu[i],
-                jointTranslations_gpu[i],
-                inverseBindingMatrix_gpu[i],
-                jointTransforms_gpu[i],
-                grid=(numBlocksFK,1,1),
-                block=(numThreadsFK,1,1))
+        # fk[i](jointRotations_gpu[i],
+        #         jointTranslations_gpu[i],
+        #         inverseBindingMatrix_gpu[i],
+        #         jointTransforms_gpu[i],
+        #         grid=(numBlocksFK,1,1),
+        #         block=(numThreadsFK,1,1))
 
         #skin
         # PLEASE ADD THE ABILITY TO ADD SCALING
