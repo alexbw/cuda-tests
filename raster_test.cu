@@ -484,9 +484,96 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
 
 }}
 
+__device__ Matrix4f calculateEMatrix(GLVertex *angle, GLVertex *translation)
+{{
+    float rotx = angle.x;
+    float roty = angle.y;
+    float rotz = angle.z;
+
+    rotx = deg2rad(rotx);
+    roty = deg2rad(roty);
+    rotz = deg2rad(rotz);
+
+    float cx = cos(rotx);
+    float sx = sin(rotx);
+    float cy = cos(roty);
+    float sy = sin(roty);
+    float cz = cos(rotz);
+    float sz = sin(rotz);
+
+    Matrix4f out = Matrix4f::Identity();
+    out <<  cy*cz,          cy*sz,         -sy   , translation.x,
+            -cx*sz+sx*sy*cz, cx*cz+sx*sy*sz, sx*cy, translation.y,
+            sx*sz+sy*cx*cz, -sx*cz+cx*sy*sz,  cx*cy, translation.z;
+
+    return out;
+
+}}
+
+extern "C"
+__global__ void FKSerial(GLVertex *baseRotations,
+                         GLVertex *rotations,
+                         GLVertex *translations,
+                         Plain4x4Matrix_f *jointTransforms)
+{{
+    // NOTE:
+    // - The E inverse could be optimized. 
+
+    // Notation:
+    // M - skinning matrix. You can multiply an unposed vector into M and get a posed vector.
+    // E - local transformation matrix. Represents a rotation and translation from (0,0)
+    // "Fixed" matrix - a matrix computed using defualt, or unposed, rotations
+    // "Changed" matrix - a matrix computed using non-default, or posed, rotations
+
+    rotations += mouseIdx*NJOINTS;
+    jointTransforms += mouseIdx*NJOINTS;
+
+    Matrix4f fixedE[NJOINTS];
+    Matrix4f fixedM[NJOINTS];
+    Matrix4f changedE[NJOINTS];
+    Matrix4f changedM[NJOINTS];
+    Matrix4f M[NJOINTS];
+    // == Get the fixed E's.
+    // ========================================
+    for (int i=0; i < NJOINTS; ++i) {{
+        fixedE[i] = calculateEMatrix(baseRotations[i], translations);
+    }}
+
+    // == Get the fixed M's.
+    // ========================================
+    fixedM[0] = fixedE[0].inverse();
+    for (int i=1; i < NJOINTS; ++i) {{
+        fixedM[i] = fixedM[i-1]*fixedE[i].inverse();
+    }}
+
+
+    // == Get the Changed E's.
+    // ========================================
+    for (int i=0; i < NJOINTS; ++i) {{
+        changedE[i] = calculateEMatrix(rotations[i], translations);
+    }}
+
+    // == Get the changed M's
+    // ========================================
+    changedM[0] = changedE[0];
+    for (int i=0; i < NJOINTS; ++i) {{
+        changedM[i] = changedE[i]*changedM[i-1];
+    }}
+
+    // == Create the final M's by multiplying the fixed and changed M's. 
+    // ========================================
+    for (int i=0; i < NJOINTS; ++i) {{
+        M[i] = fixedM[i]*changedM[i];
+        copyEigenToMat4x4(jointTransforms[i], M[i]);
+    }}
+
+}}
+
+
+
 extern "C"
 // NOTE: UNFINISHED
-__global__ void FKSerial(GLVertex *rotations,
+__global__ void FKSerial2(GLVertex *rotations,
                         GLVertex *translations,
                         Plain4x4Matrix_f *inverseBindingMatrix,
                         Plain4x4Matrix_f *jointTransforms)
