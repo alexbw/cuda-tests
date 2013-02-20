@@ -23,9 +23,6 @@ def Es(angles, translations, usesDegrees=True):
         out[idx,:-1,:] = np.array(( (cy*cz,          cy*sz,         -sy   , translations[idx,0]),
                                     (-cx*sz+sx*sy*cz, cx*cz+sx*sy*sz, sx*cy, translations[idx,1]),
                                     (sx*sz+sy*cx*cz, -sx*cz+cx*sy*sz,  cx*cy, translations[idx,2]), ))
-        # out[idx,:-1,:] = np.array(( (cy*cz,          cy*sz,         sy   , translations[idx,0]),
-        #                             (-cx*sz-sx*sy*cz, cx*cz-sx*sy*sz, sx*cy, translations[idx,1]),
-        #                             (sx*sz-sy*cx*cz, -sx*cz-cx*sy*sz,  cx*cy, translations[idx,2]), ))
 
 
     return out
