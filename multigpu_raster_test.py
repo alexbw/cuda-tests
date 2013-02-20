@@ -20,7 +20,7 @@ from matplotlib.pyplot import *
 from itertools import product
 import fk as forward_kinematics
 
-shouldWeTryFK = True
+shouldWeTryFK = False
 
 import pycuda.autoinit
 # Grab a context for each GPU
@@ -195,12 +195,12 @@ for i in range(1,2):
     for i,ctx in enumerate(contexts):
         ctx.push()
         #fk (currently broken, but does the right number of operations)
-        # fk[i](jointRotations_gpu[i],
-        #         jointTranslations_gpu[i],
-        #         inverseBindingMatrix_gpu[i],
-        #         jointTransforms_gpu[i],
-        #         grid=(numBlocksFK,1,1),
-        #         block=(numThreadsFK,1,1))
+        fk[i](jointRotations_gpu[i],
+                jointTranslations_gpu[i],
+                inverseBindingMatrix_gpu[i],
+                jointTransforms_gpu[i],
+                grid=(numBlocksFK,1,1),
+                block=(numThreadsFK,1,1))
 
         #skin
         # PLEASE ADD THE ABILITY TO ADD SCALING
