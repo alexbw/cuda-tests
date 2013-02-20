@@ -195,12 +195,12 @@ for i in range(1,2):
     for i,ctx in enumerate(contexts):
         ctx.push()
         #fk (currently broken, but does the right number of operations)
-        # fk[i](jointRotations_gpu[i],
-        #         jointTranslations_gpu[i],
-        #         inverseBindingMatrix_gpu[i],
-        #         jointTransforms_gpu[i],
-        #         grid=(numBlocksFK,1,1),
-        #         block=(numThreadsFK,1,1))
+        fk[i](jointRotations_gpu[i],
+                jointTranslations_gpu[i],
+                inverseBindingMatrix_gpu[i],
+                jointTransforms_gpu[i],
+                grid=(numBlocksFK,1,1),
+                block=(numThreadsFK,1,1))
 
         #skin
         # PLEASE ADD THE ABILITY TO ADD SCALING
@@ -241,7 +241,7 @@ for i in range(1,2):
 depthBuffer = synthPixels_gpu[0].get()
 offset = 0
 depthBuffer = depthBuffer[resolutionY*offset:resolutionY*(offset+1),0:resolutionX]
-# imshow(depthBuffer1)
+imshow(depthBuffer1)
 # close('all')
 # figure(figsize=(8,3))
 # subplot(1,2,1)
