@@ -20,7 +20,6 @@ from matplotlib.pyplot import *
 from itertools import product
 import fk as forward_kinematics
 
-shouldWeTryCPUSideFK = False
 shouldWeMessWithSomeRotations = True
 
 import pycuda.autoinit
@@ -154,15 +153,8 @@ for ctx in contexts:
     # z : up and down motions
     
     # Joint transforms
-    if shouldWeTryCPUSideFK:
-        new_rotations = m.joint_rotations.copy()
-        new_rotations[2,0] += -15.0
-        new_rotations[3,0] += -15.0
-        jointTransforms_cpu = np.vstack(forward_kinematics.get_Ms(m.joint_rotations, new_rotations, m.joint_translations)).astype('float32')
-        jointTransforms_cpu = np.tile(jointTransforms_cpu, (numMicePerPass,1))
-    else:
-        jointTransforms_cpu = np.eye(4, dtype='float32') # m.jointWorldMatrices
-        jointTransforms_cpu = np.tile(jointTransforms_cpu, (numMicePerPass*numJoints,1))
+    jointTransforms_cpu = np.eye(4, dtype='float32') # m.jointWorldMatrices
+    jointTransforms_cpu = np.tile(jointTransforms_cpu, (numMicePerPass*numJoints,1))
     jointTransforms_gpu.append(gpuarray.to_gpu(jointTransforms_cpu))
 
     # Inverse binding matrices
@@ -208,8 +200,8 @@ numMice = min([numMiceFK, numMiceRS, numMiceSK, numMiceLK])
 start = time.time()
 for i,ctx in enumerate(contexts):
     ctx.push()
-    #fk (currently broken, but does the right number of operations)
 
+    #fk
     fk[i](baseJointRotations_gpu[i],
             jointRotations_gpu[i],
             jointTranslations_gpu[i],
