@@ -148,7 +148,8 @@ for ctx in contexts:
     # Joint transforms
     if shouldWeTryFK:
         new_rotations = m.joint_rotations.copy()
-        new_rotations[2,2] += -30.0
+        new_rotations[2,0] += -15.0
+        new_rotations[3,0] += -15.0
         jointTransforms_cpu = np.vstack(forward_kinematics.get_Ms(m.joint_rotations, new_rotations, m.joint_translations)).astype('float32')
         jointTransforms_cpu = np.tile(jointTransforms_cpu, (numMicePerPass,1))
     else:
