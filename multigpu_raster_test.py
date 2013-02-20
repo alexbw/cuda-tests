@@ -185,64 +185,62 @@ for ctx in contexts:
     ctx.synchronize()
     ctx.pop()
 
-# for (numBlocks,numThreads) in product(range(150,300,10), range(9,13)):
-for i in range(1,2):
-    
-    numBlocksFK,numThreadsFK = 10,256
-    numMiceFK = numBlocksFK*numThreadsFK
-    numBlocksRS,numThreadsRS = 10,256
-    numMiceRS = numBlocksRS*numThreadsRS
-    numBlocksSK,numThreadsSK = 10,256
-    numMiceSK = numBlocksSK*numThreadsSK
-    numBlocksLK,numThreadsLK = 10,256
-    numMiceLK = numBlocksLK*numThreadsLK
-    numMice = min([numMiceFK, numMiceRS, numMiceSK, numMiceLK])
 
-    start = time.time()
-    for i,ctx in enumerate(contexts):
-        ctx.push()
-        #fk (currently broken, but does the right number of operations)
+numBlocksFK,numThreadsFK = 10,256
+numMiceFK = numBlocksFK*numThreadsFK
+numBlocksRS,numThreadsRS = 10,256
+numMiceRS = numBlocksRS*numThreadsRS
+numBlocksSK,numThreadsSK = 10,256
+numMiceSK = numBlocksSK*numThreadsSK
+numBlocksLK,numThreadsLK = 10,256
+numMiceLK = numBlocksLK*numThreadsLK
+numMice = min([numMiceFK, numMiceRS, numMiceSK, numMiceLK])
 
-        # fk[i](jointRotations_gpu[i],
-        #         jointRotations_gpu[i],
-        #         jointTranslations_gpu[i],
-        #         jointTransforms_gpu[i],
-        #         grid=(numBlocksFK,1,1),
-        #         block=(numThreadsFK,1,1))
+start = time.time()
+for i,ctx in enumerate(contexts):
+    ctx.push()
+    #fk (currently broken, but does the right number of operations)
 
-        #skin
-        # PLEASE ADD THE ABILITY TO ADD SCALING
-        skinning[i](jointTransforms_gpu[i],
-                mouseVertices_gpu[i],
-                jointWeights_gpu[i],
-                jointWeightIndices_gpu[i],
-                skinnedVertices_gpu[i],
-                grid=(numBlocksSK,1,1),
-                block=(numThreadsSK,1,1))
+    fk[i](jointRotations_gpu[i],
+            jointRotations_gpu[i],
+            jointTranslations_gpu[i],
+            jointTransforms_gpu[i],
+            grid=(numBlocksFK,1,1),
+            block=(numThreadsFK,1,1))
 
-        #raster
-        raster[i]( skinnedVertices_gpu[i], 
-                mouseVertices_gpu[i],
-                mouseVertexIdx_gpu[i],
-                synthPixels_gpu[i],
-                grid=(numBlocksRS,1,1),
-                block=(numThreadsRS,1,1))
+    #skin
+    # PLEASE ADD THE ABILITY TO ADD SCALING
+    skinning[i](jointTransforms_gpu[i],
+            mouseVertices_gpu[i],
+            jointWeights_gpu[i],
+            jointWeightIndices_gpu[i],
+            skinnedVertices_gpu[i],
+            grid=(numBlocksSK,1,1),
+            block=(numThreadsSK,1,1))
 
-        #likelihood
-        likelihood[i](synthPixels_gpu[i],
-                realPixels_gpu[i],
-                likelihoods_gpu[i],
-                grid=(numBlocksLK,1,1),
-                block=(numThreadsLK,1,1))
-        ctx.pop()
+    #raster
+    raster[i]( skinnedVertices_gpu[i], 
+            mouseVertices_gpu[i],
+            mouseVertexIdx_gpu[i],
+            synthPixels_gpu[i],
+            grid=(numBlocksRS,1,1),
+            block=(numThreadsRS,1,1))
 
-    for ctx in contexts:
-        ctx.push()
-        ctx.synchronize()
-        ctx.pop()
+    #likelihood
+    likelihood[i](synthPixels_gpu[i],
+            realPixels_gpu[i],
+            likelihoods_gpu[i],
+            grid=(numBlocksLK,1,1),
+            block=(numThreadsLK,1,1))
+    ctx.pop()
 
-    full_time = time.time() - start
-    print "Skin,Raster,Likelihood {micesec} mice/sec".format(micesec=numGPUs*numMice/full_time)
+for ctx in contexts:
+    ctx.push()
+    ctx.synchronize()
+    ctx.pop()
+
+full_time = time.time() - start
+print "Skin,Raster,Likelihood {micesec} mice/sec".format(micesec=numGPUs*numMice/full_time)
 
 
 # Do a little display diagnostics
