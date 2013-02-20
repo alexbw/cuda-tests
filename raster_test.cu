@@ -543,13 +543,13 @@ __global__ void FKSerial(GLVertex *baseRotations,
     // Verify rotation    
     printf("This is the rotation\n");
     for (int i=0; i < NJOINTS; ++i) {{
-        printf("%2.2f, %2.2f, %2.2f\n", rotations[i].x, rotations[i].y, rotations[i].z)
+        printf("%2.2f, %2.2f, %2.2f\n", rotations[i].x, rotations[i].y, rotations[i].z);
     }}
 
     // Verify translation
     printf("This is the translation\n");
     for (int i=0; i < NJOINTS; ++i) {{
-        printf("%2.2f, %2.2f, %2.2f\n", translations[i].x, translations[i].y, translations[i].z)
+        printf("%2.2f, %2.2f, %2.2f\n", translations[i].x, translations[i].y, translations[i].z);
     }}
 
 
