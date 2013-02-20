@@ -199,7 +199,7 @@ numMice = min([numMiceFK, numMiceRS, numMiceSK, numMiceLK])
 start = time.time()
 for i,ctx in enumerate(contexts):
     ctx.push()
-    jointRotations_gpu.set(jointRotations_cpu)
+    jointRotations_gpu[i].set(jointRotations_cpu)
 
     #fk
     fk[i](baseJointRotations_gpu[i],
