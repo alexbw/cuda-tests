@@ -173,7 +173,7 @@ for ctx in contexts:
 
     # Joint rotations
     jointRotations_cpu = m.joint_rotations.astype('float32')
-    jointRotations_cpu = jointRotations_cpu[:,[2,1,0]] # WHY? WHY? WHY? WHY? FUCK YOU THAT'S WHY
+    jointRotations_cpu = jointRotations_cpu[:,:] # WHY? WHY? WHY? WHY? FUCK YOU THAT'S WHY
     jointRotations_cpu = np.tile(jointRotations_cpu, (numMicePerPass,1))
     jointRotations_gpu.append(gpuarray.to_gpu(jointRotations_cpu))
 
