@@ -203,12 +203,12 @@ for i in range(1,2):
         ctx.push()
         #fk (currently broken, but does the right number of operations)
 
-        fk[i](jointRotations_gpu[i],
-                jointRotations_gpu[i],
-                jointTranslations_gpu[i],
-                jointTransforms_gpu[i],
-                grid=(numBlocksFK,1,1),
-                block=(numThreadsFK,1,1))
+        # fk[i](jointRotations_gpu[i],
+        #         jointRotations_gpu[i],
+        #         jointTranslations_gpu[i],
+        #         jointTransforms_gpu[i],
+        #         grid=(numBlocksFK,1,1),
+        #         block=(numThreadsFK,1,1))
 
         #skin
         # PLEASE ADD THE ABILITY TO ADD SCALING
