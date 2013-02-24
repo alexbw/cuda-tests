@@ -230,10 +230,18 @@ class MousePoser(object):
             idx_iter = this_iter*self.numMice*self.numGPUs
 
             for i,ctx in enumerate(self.contexts):
+
+                # Figure out which angles we'll be pushing
                 idx_gpu = idx_iter + i*self.numMice
                 these_angles = joint_angles[idx_gpu:idx_gpu+self.numMice*self.numJoints,:]
+
+                # Push the current context
                 ctx.push()
+
+                # Send up the angles, and zero out the likelihoods and synth pixels
                 self.jointRotations_gpu[i].set(these_angles)
+                driver.memset_d32(self.likelihoods_gpu[i].gpudata, 0, self.likelihoods_gpu[i].size)
+                driver.memset_d32(self.synthPixels_gpu[i].gpudata, 500, self.synthPixels_gpu[i].size)
                 
                 # Only upload the mouse image on the first iteration
                 if this_iter == 0:
@@ -293,11 +301,18 @@ class MousePoser(object):
             idx_iter = this_iter*self.numMice*self.numGPUs
 
             for i,ctx in enumerate(self.contexts):
+
+                # Figure out which angles we'll be pushing
                 idx_gpu = idx_iter + i*self.numMice
                 these_angles = joint_angles[idx_gpu:idx_gpu+self.numMice*self.numJoints,:]
 
+                # Push the current context
                 ctx.push()
+
+                # Send up the angles, and zero out the likelihoods and synth pixels
                 self.jointRotations_gpu[i].set(these_angles)
+                driver.memset_d32(self.likelihoods_gpu[i].gpudata, 0, self.likelihoods_gpu[i].size)
+                driver.memset_d32(self.synthPixels_gpu[i].gpudata, 0, self.synthPixels_gpu[i].size)
 
                 #fk
                 self.fk[i](self.baseJointRotations_gpu[i],
