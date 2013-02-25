@@ -334,9 +334,12 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
         theseJoints[i] = Matrix4f(jointTransforms[i].matrix);
     }}
 
-    // Precalculate some scaling matrices
-    Matrix4f scale_matrix = scaleMatrix(scale.x*RESOLUTION_X*0.3, scale.y*RESOLUTION_Y*0.3, scale.z);
-    Vector4f translate_vector(offset.x+RESOLUTION_X/2, offset.y+RESOLUTION_Y/2, offset.z, 0.0);
+    // Precalculate some transformation matrices
+    offset.x += RESOLUTION_X/2;
+    offset.y += RESOLUTION_Y/2;
+    Matrix4f E = calculateEMatrix(rotation, offset);
+    Matrix4f scale_matrix = scaleMatrix(scale.x*RESOLUTION_X, scale.y*RESOLUTION_Y, scale.z);
+    Vector4f translate_vector(offset.x, offset.y, offset.z, 0.0);
 
     for (int i=0; i < NVERTS; ++i) {{
         // Grab the unposed vertex
@@ -353,6 +356,7 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
         // After we've computed the weighted skin position,
         // then we'll scale and translate it into a proper skin space
         skinnedVertex = scale_matrix*skinnedVertex;
+        // skinnedVertex = E*skinnedVertex;
         skinnedVertex = skinnedVertex+translate_vector;
 
         skinnedVertices[i].x = skinnedVertex(0);
@@ -395,6 +399,7 @@ __global__ void FKSerial(GLVertex *baseRotations,
     Matrix4f changedE[NJOINTS];
     Matrix4f changedM[NJOINTS];
     Matrix4f M[NJOINTS];
+    
     // == Get the fixed E's.
     // ========================================
     for (int i=0; i < NJOINTS; ++i) {{

@@ -16,7 +16,6 @@ class MousePoser(object):
     Behind the scenes, it's doing everything on the graphics card,
     and is managing all of the setup and teardown required.
     """
-
     def __init__(self, mouseModel=None, maxNumBlocks=30, imageSize=(64,64)):
         super(MousePoser, self).__init__()
         
@@ -133,7 +132,7 @@ class MousePoser(object):
 
             # Joint rotations
             self.jointRotations_cpu = self.mouseModel.joint_rotations.astype('float32')
-            self.jointRotations_cpu = np.tile(self.jointRotations_cpu, (self.numMicePerPass,1))
+            self.jointRotations_cpu = np.tile(self.jointRotations_cpu, (self.numMicePerPass,1,1))
             self.jointRotations_gpu.append(gpuarray.to_gpu_async(self.jointRotations_cpu))
 
             # Mouse scales
@@ -236,8 +235,7 @@ class MousePoser(object):
         # TODO: don't use lists, use nparrays and think about indexing you idiot
         # TODO: make sure the right number of calls are being made. This will require asserts.
 
-        numJointProposals, numAngles = joint_angles.shape
-        numProposals = numJointProposals/self.numJoints
+        numProposals, numJoints, numAngles = joint_angles.shape
         assert numAngles == 3, "Need 3 angles, bro"
         assert np.mod(numProposals, self.numMice) == 0, "Num proposals must be a multiple of %d" % self.numMice
         assert len(offsets) == len(rotations) == len(scales) == numProposals, \
