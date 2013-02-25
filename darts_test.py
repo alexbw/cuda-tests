@@ -29,11 +29,7 @@ posed_mice = np.zeros((numPasses*numMice, mp.resolutionY, mp.resolutionX), dtype
 for i in range(numPasses):
     print "Posing mouse %d / %d" % (i*numMice, numPasses*numMice)
     ja = mp.jointRotations_cpu.copy()
-    # ja[:,2,2] -= 15.0
-    # ja[:,3,2] -= 15.0
-    # ja[:,2,0] -= 45
     ja[:,1:,0] += np.random.normal(size=ja[:,1:,0].shape, scale=20)
-    # ja[:,1:,1] += np.random.normal(size=ja[:,1:,0].shape, scale=20)
     ja[:,1:,2] += np.random.normal(size=ja[:,1:,0].shape, scale=20)
     scales[:,0] = np.abs(np.random.normal(size=(numMice,), scale=0.0025, loc=.30))
     scales[:,1] = np.abs(np.random.normal(size=(numMice,), scale=0.0025, loc=.30))
