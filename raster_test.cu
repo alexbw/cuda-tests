@@ -1,6 +1,11 @@
 // #define EIGEN_NO_MALLOC
 #define NDEBUG // VERY VERY IMPORTANT FOR PERFORMANCE!!
 
+// TODO:
+// Triangle culling
+// - Within bounds?
+// - Will be visible?
+
 #include <stdio.h>
 #include <algorithm>
 #include <Eigen/Dense>
@@ -222,7 +227,6 @@ __device__ void printEigenMat(Matrix4f someMatrix)
 
 extern "C"
 __global__ void rasterizeSerial(GLVertex *skinnedVertices, 
-                            GLVertex *vertices, // REMOVE THIS WHEN FK+SKINNING ARE IMPLEMENTED
                             GLTriangleFace *triangles,
                             float *synthPixels) 
 {{
@@ -297,10 +301,14 @@ __global__ void likelihoodSerial(float *synthPixels,
 }}
 
 extern "C"
+// TODO: ROTATIONS
 __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
                                 GLVertex *vertices,
                                 JointWeights *jointWeights,
                                 JointWeightIndices *jointWeightIndices,
+                                GLVertex *mouseScales,
+                                GLVertex *mouseOffsets,
+                                GLVertex *mouseRotations,
                                 GLVertex *skinnedVertices)
 {{
 
@@ -311,6 +319,9 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
     int mouseIdx = bx*bw + tx;
     jointTransforms += mouseIdx*NJOINTS;
     skinnedVertices += mouseIdx*NVERTS;
+    GLVertex scale = mouseScales[mouseIdx];
+    GLVertex offset = mouseOffsets[mouseIdx];
+    GLVertex rotation = mouseRotations[mouseIdx];
 
     // Calculate a joint's local rotation matrix
     Vector4f vertex;
@@ -324,8 +335,8 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
     }}
 
     // Precalculate some scaling matrices
-    Matrix4f scale_matrix = scaleMatrix(RESOLUTION_X*0.3, RESOLUTION_Y*0.3, 24.0);
-    Vector4f translate_vector(RESOLUTION_X/2, RESOLUTION_Y/2, 0., 0.0);
+    Matrix4f scale_matrix = scaleMatrix(scale.x*RESOLUTION_X*0.3, scale.y*RESOLUTION_Y*0.3, scale.z);
+    Vector4f translate_vector(offset.x+RESOLUTION_X/2, offset.y+RESOLUTION_Y/2, offset.z, 0.0);
 
     for (int i=0; i < NVERTS; ++i) {{
         // Grab the unposed vertex

@@ -16,6 +16,7 @@ class MousePoser(object):
     Behind the scenes, it's doing everything on the graphics card,
     and is managing all of the setup and teardown required.
     """
+
     def __init__(self, mouseModel=None, maxNumBlocks=30, imageSize=(64,64)):
         super(MousePoser, self).__init__()
         
@@ -262,6 +263,7 @@ class MousePoser(object):
                 these_scales = scales[idx_gpu:idx_gpu+self.numMice,:]
                 these_rotations = rotations[idx_gpu:idx_gpu+self.numMice,:]
                 these_offsets = offsets[idx_gpu:idx_gpu+self.numMice,:]
+
                 # Push the current context
                 ctx.push()
 
@@ -286,18 +288,20 @@ class MousePoser(object):
                         block=(self.numThreadsFK,1,1))
 
                 #skin
-                # PLEASE ADD THE ABILITY TO ADD SCALING
                 self.skinning[i](self.jointTransforms_gpu[i],
                         self.mouseVertices_gpu[i],
                         self.jointWeights_gpu[i],
                         self.jointWeightIndices_gpu[i],
+                        self.mouseScales_gpu[i],
+                        self.mouseOffsets_gpu[i],
+                        self.mouseRotations_gpu[i],
                         self.skinnedVertices_gpu[i],
                         grid=(self.numBlocksSK,1,1),
                         block=(self.numThreadsSK,1,1))
 
+
                 #raster
                 self.raster[i]( self.skinnedVertices_gpu[i], 
-                        self.mouseVertices_gpu[i],
                         self.mouseVertexIdx_gpu[i],
                         self.synthPixels_gpu[i],
                         grid=(self.numBlocksRS,1,1),
@@ -347,7 +351,7 @@ if __name__ == "__main__":
     from MouseData import MouseData
     m = MouseData(scenefile="mouse_mesh_low_poly3.npz")
     mp = MousePoser(mouseModel=m, maxNumBlocks=30)
-    numPasses = 2
+    numPasses = 1
     ja = np.tile(mp.jointRotations_cpu, (numPasses,1))
     ja[:,0] += np.random.normal(size=(ja.shape[0],), scale=10)
     ja[:,2] += np.random.normal(size=(ja.shape[0],), scale=10)
