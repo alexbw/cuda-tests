@@ -10,9 +10,8 @@ numPasses = 2
 
 m = MouseData(scenefile="mouse_mesh_low_poly3_2.npz")
 mp = MousePoser(mouseModel=m, maxNumBlocks=10)
-ja = mp.jointRotations_cpu.copy()
 numMice = mp.numMicePerPass
-scales = np.zeros((numMice,3), dtype='float32')
+scales = np.zeros((mp.numMicePerPass,3), dtype='float32')
 offsets = np.zeros_like(scales)
 rotations = np.zeros_like(scales)
 
@@ -28,9 +27,9 @@ posed_mice = np.zeros((numPasses*numMice, mp.resolutionY, mp.resolutionX), dtype
 
 for i in range(numPasses):
     print "Posing mouse %d / %d" % (i*numMice, numPasses*numMice)
-    ja = mp.jointRotations_cpu.copy()
-    ja[:,1:,0] += np.random.normal(size=ja[:,1:,0].shape, scale=20)
-    ja[:,1:,2] += np.random.normal(size=ja[:,1:,0].shape, scale=20)
+    joint_angles = mp.jointRotations_cpu.copy()
+    joint_angles[:,1:,0] += np.random.normal(size=joint_angles[:,1:,0].shape, scale=20)
+    joint_angles[:,1:,2] += np.random.normal(size=joint_angles[:,1:,0].shape, scale=20)
     scales[:,0] = np.abs(np.random.normal(size=(numMice,), scale=0.0025, loc=.30))
     scales[:,1] = np.abs(np.random.normal(size=(numMice,), scale=0.0025, loc=.30))
     scales[:,2] = np.abs(np.random.normal(size=(numMice,), scale=30, loc=200))
@@ -41,7 +40,7 @@ for i in range(numPasses):
     # rotations[:,1] = np.random.normal(loc=0, scale=0.01, size=(numMice,))
 
 
-    l,p = mp.get_likelihoods(joint_angles=ja, \
+    l,p = mp.get_likelihoods(joint_angles=joint_angles, \
                             scales=scales, \
                             offsets=offsets, \
                             rotations=rotations, \
@@ -51,7 +50,7 @@ for i in range(numPasses):
     posed_mice[i*numMice:i*numMice+numMice,:,:] = p
 
 
-idx = np.argsort(likelihoods)
+idx = np.argsort(likelihoods)[::-1]
 best_imgs = np.hstack(posed_mice[idx[:5]])
 best_imgs = np.hstack((img, best_imgs))
 imshow(best_imgs)

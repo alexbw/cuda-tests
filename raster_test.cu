@@ -234,6 +234,9 @@ __global__ void rasterizeSerial(GLVertex *skinnedVertices,
     const uint bx = blockIdx.x;
     const uint bw = blockDim.x;
     const uint tx = threadIdx.x;
+
+
+
     // Make sure we're looking at the right data
     skinnedVertices += NVERTS*(bw*bx + tx);
 
@@ -274,6 +277,7 @@ __global__ void rasterizeSerial(GLVertex *skinnedVertices,
             }}
         }}
     }}
+
 }}
 
 extern "C"
@@ -292,11 +296,12 @@ __global__ void likelihoodSerial(float *synthPixels,
 
     float accumulator = 0.0;
     for (int i=0; i < NUMPIXELS_PER_MOUSE; ++i) {{
-        accumulator += abs(realPixels[i] - synthPixels[i+synthPixelOffset]);
+        accumulator -= abs(realPixels[i] - synthPixels[i+synthPixelOffset]);
 
     }}
 
     atomicExch(&likelihood[mouseIdx], accumulator);
+
 
 }}
 
@@ -363,7 +368,6 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
         skinnedVertices[i].y = skinnedVertex(1);
         skinnedVertices[i].z = skinnedVertex(2);
     }}
-
 
 
 }}
@@ -438,6 +442,7 @@ __global__ void FKSerial(GLVertex *baseRotations,
             }}
         }}
     }}
+
 
 }}
 

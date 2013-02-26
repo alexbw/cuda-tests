@@ -208,7 +208,9 @@ class MousePoser(object):
 
     def _read_kernels(self):
         # Go ahead and grab the kernel code
-        with open("raster_test.cu") as kernel_file:
+        raster_kernel_path = os.path.join(os.path.dirname(__file__), "raster_test.cu")
+        print raster_kernel_path
+        with open(raster_kernel_path) as kernel_file:
             self._kernel_code_template = kernel_file.read()
         # In this kernel, currently no formatting
         self._kernel_code = self._kernel_code_template.format(resx=self.resolutionX, 
