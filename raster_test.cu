@@ -343,7 +343,8 @@ __global__ void skinningSerial(Plain4x4Matrix_f *jointTransforms,
     offset.x += RESOLUTION_X/2;
     offset.y += RESOLUTION_Y/2;
     Matrix4f E = calculateEMatrix(rotation, offset);
-    Matrix4f scale_matrix = scaleMatrix(scale.x*RESOLUTION_X, scale.y*RESOLUTION_Y, scale.z);
+    // Matrix4f scale_matrix = scaleMatrix(scale.x*RESOLUTION_X, scale.y*RESOLUTION_Y, scale.z);
+    Matrix4f scale_matrix = scaleMatrix(scale.x, scale.y, scale.z);
     Vector4f translate_vector(offset.x, offset.y, offset.z, 0.0);
 
     for (int i=0; i < NVERTS; ++i) {{

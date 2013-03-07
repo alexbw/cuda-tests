@@ -217,7 +217,6 @@ class MousePoser(object):
                                                                 resy=self.resolutionY, 
                                                                 njoints=self.numJoints)
 
-
     def benchmark(self):
         import time
         numRounds = 5
@@ -232,10 +231,7 @@ class MousePoser(object):
         print "Posed %f mice/sec" % micePerSec
 
     def get_likelihoods(self, joint_angles, scales, offsets, rotations, real_mouse_image=None, save_poses=False):
-
-        # TODO: divvy up the joint angles properly
         # TODO: don't use lists, use nparrays and think about indexing you idiot
-        # TODO: make sure the right number of calls are being made. This will require asserts.
 
         numProposals, numJoints, numAngles = joint_angles.shape
         assert numAngles == 3, "Need 3 angles, bro"
