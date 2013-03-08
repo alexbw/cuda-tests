@@ -16,7 +16,7 @@ class MousePoser(object):
     Behind the scenes, it's doing everything on the graphics card,
     and is managing all of the setup and teardown required.
     """
-    def __init__(self, mouseModel=None, maxNumBlocks=30, imageSize=(64,64)):
+    def __init__(self, mouseModel=None, maxNumBlocks=30, maxNumThreads=512,imageSize=(64,64)):
         super(MousePoser, self).__init__()
         
         self.mouseModel = mouseModel
@@ -25,13 +25,15 @@ class MousePoser(object):
         
         # SET TUNABLE PARAMETERS
         self.maxNumBlocks = maxNumBlocks
-        self.maxNumThreads = self.devices[0].get_attribute(device_attribute.MAX_THREADS_PER_BLOCK)
+        self.maxNumThreads = maxNumThreads
+        deviceMaxNumThreads = self.devices[0].get_attribute(device_attribute.MAX_THREADS_PER_BLOCK)
+        assert self.maxNumThreads <= deviceMaxNumThreads, "Maximum number of threads is %d" % deviceMaxNumThreads
         self.numMicePerPass = self.maxNumBlocks*self.maxNumThreads
         self.resolutionX = imageSize[1]
         self.resolutionY = imageSize[0]
         self.numJoints = self.mouseModel.num_joints
-
-        self._set_kernel_run_sizes(numBlocks=10, numThreads=256)
+        
+        self._set_kernel_run_sizes(numBlocks=self.maxNumBlocks, numThreads=self.maxNumThreads)
         self._set_cache_preference()
         self._setup_kernels()
         self._setup_arrays()
@@ -320,6 +322,8 @@ class MousePoser(object):
         else:
             return np.hstack(likelihoods)
             
+    def __del__(self):
+        self.teardown()
 
     def teardown(self):
         # Free everything up after the fact
