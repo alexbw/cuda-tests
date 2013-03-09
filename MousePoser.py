@@ -243,6 +243,18 @@ class MousePoser(object):
         assert len(offsets) == len(rotations) == len(scales) == numProposals, \
             "Scales, rotations and offsets must be the same, and equal to the number of proposals"
 
+        # THIS STUPID FUCKING ASSERT BROUGHT TO YOU BY THE LETTER A
+        # THE LETTER A
+        # WHICH STANDS FOR ALEX 
+        # ALEX WHO IS A STUPID DUMMY DUM DUM AND DOESN'T KNOW HOW MEMORY ACCESS WORKS ON THE GRAPHICS CARD
+        # AND CAN'T WRITE CODE WHICH RETURNS CLEAR ERRORS WHICH WOULD, SAY, 
+        # SAVE HIM FROM A SOLID 10 HOURS OF DEBUGGING
+        # YOU IDIOT
+        # JUST QUIT
+        assert scales.min() > 0, "Scales cannot be negative"
+        assert scales[:,0].max() < 1, "X scales must be between 0 and 1"
+        assert scales[:,1].max() < 1, "Y scales must be between 0 and 1"
+
         if real_mouse_image == None:
             real_mouse_image = np.zeros((self.resolutionY, self.resolutionX), dtype='float32')
 
@@ -353,8 +365,8 @@ if __name__ == "__main__":
     mp = MousePoser(mouseModel=m, maxNumBlocks=30)
     numPasses = 1
     ja = np.tile(mp.jointRotations_cpu, (numPasses,1))
-    ja[:,0] += np.random.normal(size=(ja.shape[0],), scale=10)
-    ja[:,2] += np.random.normal(size=(ja.shape[0],), scale=10)
+    ja[:,:,0] += np.random.normal(size=(ja.shape[0],mp.numJoints), scale=10)
+    ja[:,:,2] += np.random.normal(size=(ja.shape[0],mp.numJoints), scale=10)
     scales = np.ones((mp.numMicePerPass*numPasses,3), dtype='float32')
     offsets = np.zeros_like(scales)
     rotations = np.zeros_like(scales)
