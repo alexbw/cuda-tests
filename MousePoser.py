@@ -249,9 +249,9 @@ class MousePoser(object):
         # SAVE HIM FROM A SOLID 10 HOURS OF DEBUGGING
         # YOU IDIOT
         # JUST QUIT
-        assert scales.min() > 0, "Scales cannot be negative :)"
-        assert scales[:,0].max() < 1, "X scales must be between 0 and 1 :P"
-        assert scales[:,1].max() < 1, "Y scales must be between 0 and 1 :D"
+        assert scales.min() >= 0, "Scales cannot be negative :)"
+        assert scales[:,0].max() <= 1, "X scales must be between 0 and 1 :P"
+        assert scales[:,1].max() <= 1, "Y scales must be between 0 and 1 :D"
         # UGH
 
         if real_mouse_image == None:
